@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.kuka.example</groupId>
+  <artifactId>kuka-java-demo</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+
+  <properties>
+    <maven.compiler.release>17</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- 缺省交互式 CLI；一次性执行传 -Dexec.mainClass=com.kuka.example.demo.Run 覆盖 -->
+    <exec.mainClass>com.kuka.example.demo.Main</exec.mainClass>
+  </properties>
+
+  <dependencies>
+    <!-- Maven Central 拉取；开发期可先在 sdks/java 执行 mvn install 用本地版 -->
+    <dependency>
+      <groupId>io.github.midea-ai</groupId>
+      <artifactId>kuka-code</artifactId>
+      <version>2.0.11</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <mainClass>${exec.mainClass}</mainClass>
+          <!-- gRPC daemon 线程交给 JVM 收尾，避免 exec 插件中断告警 -->
+          <cleanupDaemonThreads>false</cleanupDaemonThreads>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

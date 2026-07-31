@@ -1,0 +1,38 @@
+# Kuka Python SDK
+
+[Kuka Code Core](https://github.com/midea-ai/kuka-code-core) 的官方 Python SDK：一个事件驱动的 AI 编程助手核心引擎,支持多代理协作、Skill 扩展、Plan 模式任务规划等能力。SDK 内嵌 core 运行时(sidecar),`pip install` 后开箱即用,asyncio-first。
+
+## 安装
+
+```bash
+pip install kuka-code
+```
+
+要求:Python 3.10+,本机 Node.js ≥ 18(core 运行时依赖)。
+
+## 快速开始
+
+```python
+import asyncio
+from kuka_core import KukaCore
+
+async def main():
+    core = await KukaCore.start({"workingDir": "/path/to/your/project"})
+    session = await core.create_session()
+    session.on("message:text:chunk", lambda d: print(d["delta"], end="", flush=True))
+
+    done = asyncio.Event()
+    session.on("state:update", lambda d: done.set() if (d or {}).get("state") == "idle" else None)
+
+    await session.process_user_input("你好")
+    await done.wait()          # 等回复完成再关
+    await core.close()
+
+asyncio.run(main())
+```
+
+模型配置与更多用法见 [文档](https://midea-ai.github.io/kuka-code-core),完整示例见 [example/python-demo](https://github.com/midea-ai/kuka-code-core/tree/main/example/python-demo)(交互式 CLI 与一次性执行)。
+
+## License
+
+[MIT](https://github.com/midea-ai/kuka-code-core/blob/main/LICENSE)

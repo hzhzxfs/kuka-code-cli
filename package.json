@@ -1,0 +1,99 @@
+{
+  "name": "kuka-code",
+  "version": "2.0.11",
+  "description": "Kuka Code — a command-line AI agent with custom LLM, skills, MCP, and all-permissions (Bypass) mode.",
+  "main": "dist/index.js",
+  "bin": {
+    "cc": "bin/cc.js",
+    "kuka": "bin/kuka.js"
+  },
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/types/index.js",
+      "import": "./dist/types/index.js"
+    },
+    "./event": {
+      "types": "./dist/events/types.d.ts",
+      "require": "./dist/events/types.js",
+      "import": "./dist/events/types.js"
+    },
+    "./mcp": {
+      "types": "./dist/services/mcp/index.d.ts",
+      "require": "./dist/services/mcp/index.js",
+      "import": "./dist/services/mcp/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "cli": "node bin/cc.js",
+    "lint": "eslint src/**/*.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "event-driven",
+    "tools",
+    "agents"
+  ],
+  "author": "AIRC Kuka Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/midea-ai/kuka-code-core.git"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@vscode/ripgrep": "^1.17.0",
+    "cron-parser": "^5.5.0",
+    "diff": "7.0.0",
+    "events": "^3.3.0",
+    "glob": "^13.0.0",
+    "gray-matter": "^4.0.3",
+    "iconv-lite": "^0.6.3",
+    "jimp": "^0.22.12",
+    "lodash-es": "^4.17.21",
+    "lru-cache": "^11.2.4",
+    "nanoid": "^5.1.6",
+    "openai": "^6.9.1",
+    "shell-quote": "^1.8.3",
+    "spawn-rx": "^5.1.2",
+    "undici": "^7.16.0",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
+  },
+  "devDependencies": {
+    "@types/diff": "^7.0.2",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^20.19.25",
+    "@types/shell-quote": "^1.7.5",
+    "eslint": "^10.0.2",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "overrides": {
+    "diff": "7.0.0"
+  },
+  "allowScripts": {
+    "@vscode/ripgrep@1.17.1": true,
+    "esbuild@0.27.7": true
+  }
+}
