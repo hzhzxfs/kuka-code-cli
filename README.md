@@ -1,11 +1,5 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./images/kukacode-logo-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="./images/kukacode-logo.png">
-  <img src="./images/kukacode-logo.png" alt="Kuka Code Core Logo" width="75%"/>
-</picture>
-
 <h3>An Event-Driven AI Coding Assistant Core Engine</h3>
 
 <p>Providing reliable and pluggable intelligent processing capabilities for building code assistant tools.</p>

@@ -10,6 +10,8 @@
  *   cc skills                  List available skills
  *   cc mcp                     List configured MCP servers
  *   cc config                  Show current configuration
+ *   cc sessions                List saved sessions for this directory
+ *   cc resume <sessionId>      Resume a previous session (alias of --resume)
  *   cc version                 Show version
  *   cc help                    Show help
  *
@@ -28,6 +30,8 @@ import type { MCPServerInfo } from '../types/mcp';
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { getProjectHistoryDir } from '../util/savePath';
+import { resolveHistoryFile } from '../util/history';
 
 // ---------------------------------------------------------------------------
 // Small flag parser
@@ -108,6 +112,8 @@ ${c.bold('Usage')}
   ${c.cyan('cc')} skills                  List available skills
   ${c.cyan('cc')} mcp                     List configured MCP servers
   ${c.cyan('cc')} config                  Show current configuration
+  ${c.cyan('cc')} sessions                List saved sessions for this directory
+  ${c.cyan('cc')} resume <sessionId>      Resume a previous session (alias of --resume)
   ${c.cyan('cc')} version                 Show version
   ${c.cyan('cc')} help                    Show this help
 
@@ -139,6 +145,9 @@ ${c.bold('Notes')}
   • Runs with ${c.green('Bypass')} permission by default: every tool call is allowed and no
     permission prompt is shown — it executes end-to-end without asking the user.
   • Configuration lives in ${c.cyan('~/.kuka')} (model.conf, history, skills, mcp, ...).
+  • Each session prints a ${c.cyan('8-hex session ID')} on start and exit — use
+    ${c.cyan('cc --resume <id>')} (or ${c.cyan('cc resume <id>')}) to continue that conversation.
+  • ${c.cyan('cc sessions')} lists every saved session for the current directory.
 `);
 }
 
@@ -161,6 +170,93 @@ function inferAdapt(provider: string, baseURL: string): 'openai' | 'anthropic' {
   const u = (baseURL || '').toLowerCase();
   if (p.includes('anthropic') || u.includes('anthropic')) return 'anthropic';
   return 'openai';
+}
+
+// ---------------------------------------------------------------------------
+// Session helpers: id display + listing (claude-code style)
+// ---------------------------------------------------------------------------
+function isValidSessionId(id: string): boolean {
+  return /^[0-9a-f]{8}$/i.test(id);
+}
+
+/** 从消息历史中提取第一条用户文本，作为会话预览 */
+function firstUserText(messages: any[]): string {
+  for (const m of messages || []) {
+    if (m && m.type === 'user' && m.message && m.message.content) {
+      const content = m.message.content;
+      if (typeof content === 'string') return content;
+      if (Array.isArray(content)) {
+        const t = content.find((b: any) => b && b.type === 'text' && typeof b.text === 'string');
+        if (t) return t.text;
+      }
+    }
+  }
+  return '';
+}
+
+function printSessionStart(sessionId: string, resumed: boolean): void {
+  if (resumed) {
+    console.log(c.gray('  ✻ 已恢复会话 ') + c.bold(c.cyan(sessionId)) + c.gray(' · 继续历史对话'));
+  } else {
+    console.log(c.gray('  ✻ 新会话已创建 · 会话 ID: ') + c.bold(c.cyan(sessionId)));
+  }
+}
+
+function printSessionEnd(sessionId: string): void {
+  console.log('');
+  console.log(
+    c.gray('  ✻ 会话已结束 · 会话 ID: ') +
+      c.bold(c.cyan(sessionId)) +
+      c.gray('  ·  恢复: ') +
+      c.cyan('cc --resume ' + sessionId)
+  );
+}
+
+/** 列出当前工作目录下的历史会话（从磁盘读取） */
+async function cmdSessions(workingDir: string): Promise<void> {
+  const dir = getProjectHistoryDir(workingDir);
+  console.log(c.bold('历史会话 ') + c.gray(`(工作目录: ${workingDir})`));
+  if (!fs.existsSync(dir)) {
+    console.log(c.gray('  (无历史会话记录)'));
+    return;
+  }
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => /^((\d{4}-\d{2}-\d{2})_)?[0-9a-f]{8}\.json$/i.test(f));
+  const items: { id: string; date: string; preview: string; count: number; mtime: number }[] = [];
+  for (const f of files) {
+    const fp = path.join(dir, f);
+    try {
+      const data = JSON.parse(fs.readFileSync(fp, 'utf8'));
+      const msgs: any[] = data.messages || [];
+      const idMatch = f.match(/[0-9a-f]{8}/i);
+      const id = idMatch ? idMatch[0] : '?';
+      const dMatch = f.match(/^(\d{4}-\d{2}-\d{2})/);
+      const st = fs.statSync(fp);
+      items.push({
+        id,
+        date: dMatch ? dMatch[1] : '-',
+        preview: firstUserText(msgs),
+        count: msgs.length,
+        mtime: st.mtimeMs,
+      });
+    } catch {
+      // 跳过无法解析的文件
+    }
+  }
+  items.sort((a, b) => b.mtime - a.mtime);
+  if (items.length === 0) {
+    console.log(c.gray('  (无历史会话记录)'));
+    return;
+  }
+  for (const it of items) {
+    const prev = it.preview ? it.preview.replace(/\s+/g, ' ').slice(0, 50) : c.gray('(无文本预览)');
+    console.log('  • ' + c.cyan(it.id) + c.gray(`  ${it.date}  ${it.count}条  `) + prev);
+  }
+  console.log('');
+  console.log(
+    c.gray('  恢复指定会话: ') + c.cyan('cc --resume <会话ID>') + c.gray('  或  ') + c.cyan('cc resume <会话ID>')
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +284,20 @@ async function cmdChat(opts: {
 }): Promise<void> {
   printBanner();
   const core = makeCore(opts.workingDir);
+
+  // 校验 resume 的会话 ID 格式（claude-code 风格：--resume <id>）
+  if (opts.resume) {
+    if (!isValidSessionId(opts.resume)) {
+      console.error(c.red(`无效的会话 ID: ${opts.resume}（应为 8 位十六进制，如 a1b2c3d4）`));
+      await core.dispose();
+      process.exit(1);
+    }
+    const resolved = resolveHistoryFile(opts.resume, opts.workingDir);
+    if (!resolved.exists) {
+      console.log(c.yellow(`  ⚠ 未找到会话 ${opts.resume} 的历史记录，将创建一个同名新会话。`));
+    }
+  }
+
   const result = await core.createSession(
     opts.resume ? { sessionId: opts.resume, permissionLevel: opts.permissionLevel } : { permissionLevel: opts.permissionLevel }
   );
@@ -198,6 +308,7 @@ async function cmdChat(opts: {
   const session: KukaSession = result.session!;
   // Belt-and-suspenders: ensure bypass is active.
   session.updatePermissionLevel(opts.permissionLevel);
+  printSessionStart(session.sessionId, !!opts.resume);
 
   // Permission auto-agree (only relevant if bypass is off).
   session.on('tool:permission:request', (data: { toolId: string; toolName: string }) => {
@@ -209,6 +320,7 @@ async function cmdChat(opts: {
 
   if (opts.prompt && opts.prompt.trim()) {
     await runSinglePrompt(session, opts.prompt.trim());
+    printSessionEnd(session.sessionId);
     await core.closeSession(session.sessionId);
     await core.dispose();
     process.exit(0);
@@ -297,6 +409,7 @@ async function interactiveLoop(core: KukaCore, session: KukaSession): Promise<vo
   });
 
   console.log('\n=== 会话结束 ===');
+  printSessionEnd(session.sessionId);
   core.closeSession(session.sessionId);
   await core.dispose();
   rl.close();
@@ -491,6 +604,19 @@ async function main(): Promise<void> {
     case 'config':
       await cmdConfig(workingDir);
       return;
+    case 'sessions':
+    case 'list-sessions':
+      await cmdSessions(workingDir);
+      return;
+    case 'resume': {
+      const rid = positionals[1];
+      if (rid) {
+        await cmdChat({ workingDir, permissionLevel, resume: rid });
+      } else {
+        await cmdSessions(workingDir);
+      }
+      return;
+    }
     case 'version':
     case '--version':
       console.log(getVersion());

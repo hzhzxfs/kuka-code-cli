@@ -1,11 +1,5 @@
 <div align="center">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./images/kukacode-logo-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="./images/kukacode-logo.png">
-  <img src="./images/kukacode-logo.png" alt="Kuka Code Core Logo" width="75%"/>
-</picture>
-
 <h3>事件驱动型 AI 编程助手核心引擎</h3>
 
 <p>为构建代码助手工具提供可靠、可插拔的智能处理能力</p>
