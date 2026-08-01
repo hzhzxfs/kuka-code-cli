@@ -9,8 +9,8 @@ import java.util.zip.ZipInputStream;
 
 /**
  * node 等外部依赖供应的公共设施：平台探测、登录 shell 真实 PATH、版本探测、
- * 下载 / 解压 / 去隔离。统一分发范式：本地优先 -> {@code ~/.kuka} 私有缓存命中 -> 按需下载。
- * 全程只写 {@code ~/.kuka} 缓存、只影响 sidecar 子进程环境，不修改系统环境。
+ * 下载 / 解压 / 去隔离。统一分发范式：本地优先 -> {@code ~/.kukacode} 私有缓存命中 -> 按需下载。
+ * 全程只写 {@code ~/.kukacode} 缓存、只影响 sidecar 子进程环境，不修改系统环境。
  */
 public final class Provisioner {
 
@@ -30,10 +30,10 @@ public final class Provisioner {
     private Provisioner() {
     }
 
-    /** {@code ~/.kuka} 私有缓存根。 */
+    /** {@code ~/.kukacode} 私有缓存根。 */
     public static File kukaHome() {
         String home = System.getProperty("user.home");
-        return home == null ? null : new File(home, ".kuka");
+        return home == null ? null : new File(home, ".kukacode");
     }
 
     /**

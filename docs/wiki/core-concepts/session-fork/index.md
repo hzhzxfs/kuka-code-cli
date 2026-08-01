@@ -97,10 +97,10 @@ type ForkResult =
 
 ## 存储布局
 
-快照根目录位于 `~/.kuka/snapshots/`，按项目分目录（与 history 共用同一套"项目路径 → 目录名"命名规则，仅根目录不同）。
+快照根目录位于 `~/.kukacode/snapshots/`，按项目分目录（与 history 共用同一套"项目路径 → 目录名"命名规则，仅根目录不同）。
 
 ```
-~/.kuka/snapshots/<project>/
+~/.kukacode/snapshots/<project>/
 ├── blobs/<sha256>              # 文件改动前的原始字节，内容寻址，跨会话去重
 └── <sessionId>.editlog.json    # 每会话的 EditLog，格式：{ "records": EditRecord[] }
 ```

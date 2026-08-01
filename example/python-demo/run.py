@@ -9,7 +9,7 @@
     simple   简单：仅同步 AI 文本内容
     minimal  极简：仅同步最终结论
 
-模型自动读取 ~/.kuka/model.conf（见 README），代码里无需配置模型。
+模型自动读取 ~/.kukacode/model.conf（见 README），代码里无需配置模型。
 """
 from __future__ import annotations
 

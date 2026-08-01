@@ -43,19 +43,19 @@ Skill 文件必须放在以 skill 名命名的**子目录**中，子目录下必
 | 优先级 | 来源 | 路径 |
 |-------|------|------|
 | 3（最低） | 插件级 | 已安装且启用的插件提供的 skills |
-| 2 | 用户级 | `~/.kuka/skills/` |
-| 1（最高） | 项目级 | `<project>/.kuka/skills/` |
+| 2 | 用户级 | `~/.kukacode/skills/` |
+| 1（最高） | 项目级 | `<project>/.kukacode/skills/` |
 
 示例目录结构：
 
 ```
-.kuka/skills/
+.kukacode/skills/
 ├── commit/
 │   └── SKILL.md
 └── review/
     └── SKILL.md
 
-~/.kuka/skills/
+~/.kukacode/skills/
 └── deploy/
     └── SKILL.md
 ```
@@ -64,8 +64,8 @@ Skill 文件必须放在以 skill 名命名的**子目录**中，子目录下必
 ## 创建 Skill
 
 ```bash
-mkdir -p .kuka/skills/commit
-cat > .kuka/skills/commit/SKILL.md << 'EOF'
+mkdir -p .kukacode/skills/commit
+cat > .kukacode/skills/commit/SKILL.md << 'EOF'
 ---
 name: commit
 description: 创建符合 Conventional Commits 规范的 Git 提交
@@ -124,7 +124,7 @@ Kuka 内置 `skill` 工具，AI 在判断需要时会自动调用对应的 Skill
 
 ## 示例：代码审查 Skill
 
-`.kuka/skills/review/SKILL.md`：
+`.kukacode/skills/review/SKILL.md`：
 
 ```markdown
 ---

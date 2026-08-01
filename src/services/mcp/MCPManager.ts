@@ -5,8 +5,8 @@
  * 实现优先级：插件 < 用户级 < 项目级
  *
  * 状态管理：
- * - 服务启用/禁用：.kuka/settings.json -> disabledMcpServers
- * - 可用工具列表：.kuka/settings.json -> enabledMcpServerUseTools
+ * - 服务启用/禁用：.kukacode/settings.json -> disabledMcpServers
+ * - 可用工具列表：.kukacode/settings.json -> enabledMcpServerUseTools
  */
 
 import * as fs from 'fs'
@@ -17,7 +17,7 @@ import { Tool } from '../../tools/base/Tool'
 import { MCPServerConfig, MCPScopeType, MCPServerInfo } from '../../types/mcp'
 import { logDebug, logError, logInfo, logWarn } from '../../util/log'
 import { EventBus } from '../../events/EventSystem'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { findJsonObjectLineRange } from '../../util/file'
 import { existsSync, readFileSync } from 'fs'
@@ -33,9 +33,9 @@ interface KukaSettings {
  * MCP 管理器类 - 单例模式
  */
 class MCPManager {
-  private kukaUserConfigPath: string      // ~/.kuka/.mcp.json
-  private kukaProjectConfigPath: string   // <project>/.kuka/.mcp.json
-  private kukaProjectSettingsPath: string // <project>/.kuka/settings.json
+  private kukaUserConfigPath: string      // ~/.kukacode/.mcp.json
+  private kukaProjectConfigPath: string   // <project>/.kukacode/.mcp.json
+  private kukaProjectSettingsPath: string // <project>/.kukacode/settings.json
 
   // Server 信息缓存
   private serverInfoCache: MCPServerInfo[] | null = null
@@ -46,12 +46,12 @@ class MCPManager {
   private clients: Map<string, MCPClient> = new Map()
 
   constructor() {
-    const kukaRootDir = getKukaRootDir()
+    const kukaRootDir = getKukacodeRootDir()
     this.kukaUserConfigPath = path.join(kukaRootDir, '.mcp.json')
 
     const cwd = readInitialCwd()
-    this.kukaProjectConfigPath = path.join(cwd, '.kuka', '.mcp.json')
-    this.kukaProjectSettingsPath = path.join(cwd, '.kuka', 'settings.json')
+    this.kukaProjectConfigPath = path.join(cwd, '.kukacode', '.mcp.json')
+    this.kukaProjectSettingsPath = path.join(cwd, '.kukacode', 'settings.json')
 
     // 后台静默加载 MCP 配置
     this.loadingPromise = this.refreshMCPServerConfigs()
@@ -236,7 +236,7 @@ class MCPManager {
     // 1. 插件 MCP：从已安装且启用的插件中加载 - 最低优先级
     await this.loadMCPsFromPlugins(serverMap, kukaDisabled, kukaUseToolsMap)
 
-    // 2. Kuka 用户级：~/.kuka/.mcp.json
+    // 2. Kuka 用户级：~/.kukacode/.mcp.json
     const kukaUserServers = this.readMcpServers(this.kukaUserConfigPath)
     if (kukaUserServers) {
       let count = 0
@@ -251,7 +251,7 @@ class MCPManager {
       if (count > 0) logDebug(`加载 Kuka 用户级 MCP: ${count} 个`)
     }
 
-    // 3. Kuka 项目级：<project>/.kuka/.mcp.json（最高优先级）
+    // 3. Kuka 项目级：<project>/.kukacode/.mcp.json（最高优先级）
     const kukaProjectServers = this.readMcpServers(this.kukaProjectConfigPath)
     if (kukaProjectServers) {
       let count = 0
@@ -567,7 +567,7 @@ class MCPManager {
 
   /**
    * 禁用指定 MCP Server
-   * 修改 .kuka/settings.json 的 disabledMcpServers 字段
+   * 修改 .kukacode/settings.json 的 disabledMcpServers 字段
    */
   async disableMCPServer(name: string): Promise<MCPServerInfo[]> {
     const info = this.serverInfoCache?.find(s => s.config.name === name)
@@ -591,7 +591,7 @@ class MCPManager {
 
   /**
    * 启用指定 MCP Server
-   * 修改 .kuka/settings.json 的 disabledMcpServers 字段
+   * 修改 .kukacode/settings.json 的 disabledMcpServers 字段
    */
   async enableMCPServer(name: string): Promise<MCPServerInfo[]> {
     const info = this.serverInfoCache?.find(s => s.config.name === name)
@@ -612,7 +612,7 @@ class MCPManager {
 
   /**
    * 更新指定 MCP Server 的工具使用列表
-   * 修改 .kuka/settings.json 的 enabledMcpServerUseTools 字段
+   * 修改 .kukacode/settings.json 的 enabledMcpServerUseTools 字段
    */
   async updateMCPUseTools(name: string, toolNames: string[] | null): Promise<MCPServerInfo[]> {
     const info = this.serverInfoCache?.find(s => s.config.name === name)

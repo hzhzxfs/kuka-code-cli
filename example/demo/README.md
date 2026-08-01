@@ -5,7 +5,7 @@
 1. **交互式 CLI**（`src/cli.ts`）：在终端里多轮对话，支持流式输出、esc 中断、权限询问。
 2. **一次性执行**（`src/run.ts`）：传入项目路径、用户输入与详略档位，执行单条指令后退出。
 
-> 代码里**不包含任何模型配置**——`kuka-code` 启动时会自动读取 `~/.kuka/model.conf`。请先按下方第 2 步创建该文件。
+> 代码里**不包含任何模型配置**——`kuka-code` 启动时会自动读取 `~/.kukacode/model.conf`。请先按下方第 2 步创建该文件。
 
 ---
 
@@ -16,9 +16,9 @@ cd example/demo
 npm install
 ```
 
-## 2. 配置模型：创建 `~/.kuka/model.conf`
+## 2. 配置模型：创建 `~/.kukacode/model.conf`
 
-首次使用前，在用户主目录下创建 `~/.kuka/model.conf`，内容如下（把 `apiKey` 换成你自己的）：
+首次使用前，在用户主目录下创建 `~/.kukacode/model.conf`，内容如下（把 `apiKey` 换成你自己的）：
 
 ```jsonc
 {

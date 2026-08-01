@@ -2,8 +2,8 @@
  * Design 资源管理器
  *
  * 扫描全局设计资源：
- *   - ~/.kuka/designs/skills          每个子目录下含 SKILL.md
- *   - ~/.kuka/designs/design-systems  每个子目录下含 DESIGN.md
+ *   - ~/.kukacode/designs/skills          每个子目录下含 SKILL.md
+ *   - ~/.kukacode/designs/design-systems  每个子目录下含 DESIGN.md
  *
  * 同步扫盘 + 进程内缓存；调用方可传 refresh=true 强制重读。
  * 同步入口 (listDesignSkills / listDesignSystems) 供 reminder 等同步链路使用，
@@ -12,7 +12,7 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { parseFile } from '../../util/formatter'
 import { logDebug, logError, logInfo } from '../../util/log'
 import {
@@ -41,7 +41,7 @@ class DesignManager {
   private systemCache: DesignSystemInfo[] | null = null
 
   constructor() {
-    const kukaRoot = getKukaRootDir()
+    const kukaRoot = getKukacodeRootDir()
     this.skillsDir = path.join(kukaRoot, 'designs', 'skills')
     this.designSystemsDir = path.join(kukaRoot, 'designs', 'design-systems')
   }

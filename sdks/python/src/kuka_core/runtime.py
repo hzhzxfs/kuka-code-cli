@@ -3,11 +3,11 @@
 - 拉起 Node 桥进程，KUKA_BRIDGE_PORT=0 由系统分配端口，stdout 解析
   `KUKA_BRIDGE_PORT_ACTUAL=<port>` 完成端口握手；
 - sidecar 目录解析顺序：显式参数 → 环境变量 KUKA_SIDECAR_DIR → 包内捆绑
-  （_sidecar/，释放到 ~/.kuka/python-sdk-sidecar，与 Java 的 jar 内嵌同构）；
+  （_sidecar/，释放到 ~/.kukacode/python-sdk-sidecar，与 Java 的 jar 内嵌同构）；
 - 注入 KUKA_BRIDGE_PARENT_OWNED=1：生命周期归本 manager（close 发 SIGTERM），
   终端宿主的 Ctrl-C 广播 SIGINT 时桥忽略，保住「第一次 Ctrl-C 只中断会话」语义；
 - Node 供应走统一分发范式（与 Java / C# SDK 对齐）：本地优先（KUKA_NODE_PATH →
-  PATH 里 ≥18 的 node → 常见绝对路径）→ ~/.kuka/node 缓存 → 按需下载
+  PATH 里 ≥18 的 node → 常见绝对路径）→ ~/.kukacode/node 缓存 → 按需下载
   （KUKA_NODE_BASE_URL 可指内网镜像）；宿主也可注入自定义 node_provider。
 """
 from __future__ import annotations
@@ -34,7 +34,7 @@ _NODE_VERSION = "20.18.0"  # LTS；与 Java / C# SDK 写死同值，升级时三
 _NODE_DEFAULT_BASE = "https://nodejs.org/dist"
 _COMMON_NODE_PATHS = (
     "/usr/local/bin/node", "/opt/homebrew/bin/node", "/usr/bin/node",
-    os.path.expanduser(f"~/.kuka/node/{_NODE_VERSION}"),
+    os.path.expanduser(f"~/.kukacode/node/{_NODE_VERSION}"),
 )
 
 NodeProvider = Callable[[], str]
@@ -54,13 +54,13 @@ def system_node_provider() -> str:
         path = Path(p)
         if path.is_file():
             candidates.append(str(path))
-        elif path.is_dir():  # ~/.kuka/node 缓存布局：<ver>/<triple>/bin/node
+        elif path.is_dir():  # ~/.kukacode/node 缓存布局：<ver>/<triple>/bin/node
             candidates.extend(str(f) for f in path.glob("*/bin/node"))
             candidates.extend(str(f) for f in path.glob("*/**/node.exe"))
     for node in candidates:
         if _node_major(node) >= 18:
             return node
-    # 都未命中才下载（一次性，落 ~/.kuka/node 缓存后上面即可命中）
+    # 都未命中才下载（一次性，落 ~/.kukacode/node 缓存后上面即可命中）
     try:
         return _download_node()
     except Exception as e:
@@ -84,9 +84,9 @@ def _node_asset() -> tuple[str, bool]:
 
 
 def _download_node() -> str:
-    """下载 node 到 ~/.kuka/node/<ver>/<triple>/，返回其中的可执行文件路径。"""
+    """下载 node 到 ~/.kukacode/node/<ver>/<triple>/，返回其中的可执行文件路径。"""
     triple, is_zip = _node_asset()
-    cache_dir = Path.home() / ".kuka" / "node" / _NODE_VERSION / triple
+    cache_dir = Path.home() / ".kukacode" / "node" / _NODE_VERSION / triple
     base = (os.environ.get("KUKA_NODE_BASE_URL") or _NODE_DEFAULT_BASE).rstrip("/")
     file_name = f"node-v{_NODE_VERSION}-{triple}.{'zip' if is_zip else 'tar.gz'}"
     url = f"{base}/v{_NODE_VERSION}/{file_name}"
@@ -282,12 +282,12 @@ class SidecarManager:
 
     @staticmethod
     def _extract_bundled_sidecar() -> Optional[Path]:
-        """包内捆绑产物释放到 ~/.kuka/python-sdk-sidecar（≙ Java extractBundledSidecar）。"""
+        """包内捆绑产物释放到 ~/.kukacode/python-sdk-sidecar（≙ Java extractBundledSidecar）。"""
         pkg = resources.files("kuka_core")
         server = pkg / "_sidecar" / "server.js"
         if not server.is_file():
             return None
-        target = Path.home() / ".kuka" / "python-sdk-sidecar"
+        target = Path.home() / ".kukacode" / "python-sdk-sidecar"
         (target / "proto").mkdir(parents=True, exist_ok=True)
         (target / "server.js").write_bytes(server.read_bytes())
         proto = pkg / "_sidecar" / "proto" / "kuka.proto"

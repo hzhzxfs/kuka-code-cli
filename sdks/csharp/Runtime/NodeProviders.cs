@@ -5,7 +5,7 @@ namespace Kukacore.Runtime;
 
 /// <summary>
 /// Node 可执行文件供应器（≙ Java runtime/NodeProvider）。SDK 默认实现走统一分发范式
-/// 本地优先 → ~/.kuka 缓存 → 按需下载（<see cref="NodeProviders.System"/>，与 Java / Python
+/// 本地优先 → ~/.kukacode 缓存 → 按需下载（<see cref="NodeProviders.System"/>，与 Java / Python
 /// SDK 对齐）；需要其他策略的宿主注入自己的实现。
 /// </summary>
 /// <returns>node 可执行文件的绝对路径；无法提供时抛 IOException（消息应包含引导用户的处置建议）。</returns>
@@ -39,7 +39,7 @@ public static class NodeProviders
 
     /// <summary>
     /// 统一分发范式：KUKA_NODE_PATH 环境变量 → 登录 shell PATH 里 ≥18 的 node →
-    /// 常见绝对路径 → <c>~/.kuka/node</c> 缓存 → 从 nodejs.org 官方 Release 下载到缓存
+    /// 常见绝对路径 → <c>~/.kukacode/node</c> 缓存 → 从 nodejs.org 官方 Release 下载到缓存
     /// （内网用 KUKA_NODE_BASE_URL 指镜像）。探测与下载均失败时抛 IOException 引导用户安装。
     /// </summary>
     public static NodeProvider System() => ResolveSystemNode;
@@ -61,14 +61,14 @@ public static class NodeProviders
         {
             if (!string.IsNullOrWhiteSpace(dir)) candidates.Add(Path.Combine(dir, NodeExe));
         }
-        // 3) 常见绝对路径 + ~/.kuka/node 缓存兜底（缓存布局：<ver>/<triple>/bin/node）
+        // 3) 常见绝对路径 + ~/.kukacode/node 缓存兜底（缓存布局：<ver>/<triple>/bin/node）
         if (!OperatingSystem.IsWindows())
         {
             candidates.Add("/opt/homebrew/bin/node");
             candidates.Add("/usr/local/bin/node");
             candidates.Add("/usr/bin/node");
         }
-        var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kuka", "node");
+        var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kukacode", "node");
         if (Directory.Exists(cache))
         {
             try
@@ -84,7 +84,7 @@ public static class NodeProviders
                 return Path.GetFullPath(candidate);
         }
 
-        // 5) 按需下载（一次性，落 ~/.kuka/node 缓存后上面第 4 步即可命中）
+        // 5) 按需下载（一次性，落 ~/.kukacode/node 缓存后上面第 4 步即可命中）
         try
         {
             return DownloadNode();
@@ -112,7 +112,7 @@ public static class NodeProviders
         return null;
     }
 
-    /// <summary>下载 node 到 <c>~/.kuka/node/&lt;ver&gt;/&lt;triple&gt;/</c>，返回其中的可执行文件路径。</summary>
+    /// <summary>下载 node 到 <c>~/.kukacode/node/&lt;ver&gt;/&lt;triple&gt;/</c>，返回其中的可执行文件路径。</summary>
     private static string DownloadNode()
     {
         var triple = TripleFor()
@@ -120,7 +120,7 @@ public static class NodeProviders
                 + global::System.Runtime.InteropServices.RuntimeInformation.OSArchitecture);
         var cacheDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".kuka", "node", NodeVersion, triple);
+            ".kukacode", "node", NodeVersion, triple);
 
         var base_ = (Environment.GetEnvironmentVariable("KUKA_NODE_BASE_URL") ?? DefaultBase).TrimEnd('/');
         var zip = OperatingSystem.IsWindows();

@@ -18,8 +18,8 @@ Command 是以 Markdown 文件形式存储的自定义快捷指令，允许你�
 | 优先级 | 来源 | 路径 | 说明 |
 |--------|------|------|------|
 | 1（最低） | 插件级 | 已安装且启用的插件提供的 commands | 插件命令，格式：`插件名:命令名` |
-| 2 | Kuka 用户级 | `~/.kuka/commands/` | 用户全局命令 |
-| 3（最高） | Kuka 项目级 | `<project>/.kuka/commands/` | 项目专属命令 |
+| 2 | Kuka 用户级 | `~/.kukacode/commands/` | 用户全局命令 |
+| 3（最高） | Kuka 项目级 | `<project>/.kukacode/commands/` | 项目专属命令 |
 
 > **注意**：Kuka 项目级的同名命令会覆盖用户级。插件来源的命令名为 `插件名:命令名` 格式。
 
@@ -28,7 +28,7 @@ Command 是以 Markdown 文件形式存储的自定义快捷指令，允许你�
 每个命令对应一个 `.md` 文件，命令名由文件路径自动生成（子目录用 `:` 分隔）：
 
 ```
-.kuka/commands/
+.kukacode/commands/
 ├── fix-lint.md          → /fix-lint
 ├── run-tests.md         → /run-tests
 └── frontend/
@@ -165,8 +165,8 @@ interface CommandConfig {
 
 ### 1. 项目级 vs 用户级
 
-- **项目级命令**（`.kuka/commands/`）：团队共享的命令，如项目特定的测试、构建命令
-- **用户级命令**（`~/.kuka/commands/`）：个人常用命令，如代码审查、文档生成等
+- **项目级命令**（`.kukacode/commands/`）：团队共享的命令，如项目特定的测试、构建命令
+- **用户级命令**（`~/.kukacode/commands/`）：个人常用命令，如代码审查、文档生成等
 
 ### 2. 参数设计
 
@@ -184,7 +184,7 @@ argument-hint: [pr-number] [focus-area]
 对于复杂项目，建议使用子目录组织命令：
 
 ```
-.kuka/commands/
+.kukacode/commands/
 ├── test/
 │   ├── unit.md        → /test:unit
 │   ├── integration.md → /test:integration

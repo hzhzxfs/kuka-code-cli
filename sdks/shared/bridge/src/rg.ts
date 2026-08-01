@@ -9,8 +9,8 @@ import { spawnSync } from 'child_process';
  * ripgrep 兜底供应（跨语言共享的唯一实现——桥运行时 node 已就绪，rg 供应放这里
  * 即可让 Java / Python / C# SDK 零代码共享；node 本身的供应因引导悖论仍归各语言 runtime）。
  *
- * 统一分发范式：本地优先（PATH 里探到能跑的 rg 就用）→ ~/.kuka 私有缓存命中 → 按需下载。
- * 全程只写 ~/.kuka 缓存、只前置进本进程 PATH（kuka-code spawn rg 时按 PATH 查找），
+ * 统一分发范式：本地优先（PATH 里探到能跑的 rg 就用）→ ~/.kukacode 私有缓存命中 → 按需下载。
+ * 全程只写 ~/.kukacode 缓存、只前置进本进程 PATH（kuka-code spawn rg 时按 PATH 查找），
  * 不修改系统环境。rg 缺失只影响搜索性能，失败时告警后继续。
  */
 
@@ -157,7 +157,7 @@ async function download(cacheDir: string): Promise<string> {
 
 /**
  * 确保 rg 可用并（必要时）前置进本进程 PATH。
- * 优先级：KUKA_RG_PATH 显式 → PATH 里的本地 rg → ~/.kuka/rg/<ver>/<triple> 缓存 → 下载。
+ * 优先级：KUKA_RG_PATH 显式 → PATH 里的本地 rg → ~/.kukacode/rg/<ver>/<triple> 缓存 → 下载。
  * 失败时告警后继续（rg 缺失只影响搜索性能，不阻塞启动）。
  */
 export async function ensureRg(): Promise<void> {
@@ -187,7 +187,7 @@ export async function ensureRg(): Promise<void> {
     console.warn(`[kuka-grpc] 不支持的平台，无法准备 ripgrep: ${process.platform}/${process.arch}`);
     return;
   }
-  const cacheDir = path.join(os.homedir(), '.kuka', 'rg', RG_VERSION, asset.triple);
+  const cacheDir = path.join(os.homedir(), '.kukacode', 'rg', RG_VERSION, asset.triple);
   if (canExecute(path.join(cacheDir, RG_NAME))) {
     prependPath(cacheDir);
     return;

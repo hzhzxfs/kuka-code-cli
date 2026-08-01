@@ -128,7 +128,7 @@ interface ModelUpdateData {
 
 ## 持久化
 
-模型配置自动持久化到 `~/.kuka/model.conf` 文件中：
+模型配置自动持久化到 `~/.kukacode/model.conf` 文件中：
 
 ```json
 {

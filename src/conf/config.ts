@@ -1,5 +1,5 @@
 // kuka数据存储目录
-export const KUKA_ROOT = '~/.kuka'
+export const KUKACODE_ROOT = '~/.kukacode'
 
 // 模型配置文件
 export const MODEL_CONF_FILE_PATH = 'model.conf'

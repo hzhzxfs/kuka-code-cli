@@ -36,7 +36,7 @@ public final class NodeProviders {
     /**
      * 统一分发范式（与 Python / C# SDK 行为对齐）：本地优先 → 缓存命中 → 按需下载。
      * KUKA_NODE_PATH 环境变量 / kuka.node.path 系统属性 → 登录 shell PATH 里 ≥18 的 node →
-     * 常见绝对路径 → {@code ~/.kuka/node} 缓存 → 从 nodejs.org 官方 Release 下载到缓存
+     * 常见绝对路径 → {@code ~/.kukacode/node} 缓存 → 从 nodejs.org 官方 Release 下载到缓存
      * （内网用 KUKA_NODE_BASE_URL 指镜像）。探测与下载均失败时抛 IOException 引导用户安装。
      */
     public static NodeProvider system() {
@@ -68,7 +68,7 @@ public final class NodeProviders {
             candidates.add("/usr/local/bin/node");
             candidates.add("/usr/bin/node");
         }
-        // 4) ~/.kuka/node 缓存（缓存布局：<ver>/<triple>/bin/node，首次自动下载后落此处）
+        // 4) ~/.kukacode/node 缓存（缓存布局：<ver>/<triple>/bin/node，首次自动下载后落此处）
         File kukaHome = Provisioner.kukaHome();
         if (kukaHome != null) {
             collectFilesNamed(new File(kukaHome, "node"), NODE_EXE, candidates);
@@ -81,7 +81,7 @@ public final class NodeProviders {
             }
         }
 
-        // 5) 按需下载（一次性，落 ~/.kuka/node 缓存后上面第 4 步即可命中）
+        // 5) 按需下载（一次性，落 ~/.kukacode/node 缓存后上面第 4 步即可命中）
         try {
             return downloadNode().getAbsolutePath();
         } catch (Exception e) {
@@ -107,7 +107,7 @@ public final class NodeProviders {
         return null;
     }
 
-    /** 下载 node 到 {@code ~/.kuka/node/<ver>/<triple>/}，返回其中的可执行文件。 */
+    /** 下载 node 到 {@code ~/.kukacode/node/<ver>/<triple>/}，返回其中的可执行文件。 */
     private static File downloadNode() throws IOException {
         String triple = tripleFor();
         if (triple == null) {

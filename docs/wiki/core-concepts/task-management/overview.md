@@ -34,7 +34,7 @@ TaskManager._notify(record)          CronManager.fire(task)
 | 运行内容 | 独立运行的 shell 进程 / SubAgent | 注入一段提示词，起一轮新对话 |
 | 生命周期 | 任务结束即归档 | 周期任务反复触发，直至删除或 10 天过期 |
 | 限额 | 每会话 5 个 running | 全局 20 个 |
-| 持久化 | 不持久化（随会话） | 可选 `persist` 到 `.kuka/scheduled_tasks.json` |
+| 持久化 | 不持久化（随会话） | 可选 `persist` 到 `.kukacode/scheduled_tasks.json` |
 | 通知文本 | `task-notification`（结束时） | `cron-notification`（到点时） |
 | 注入路由 | 严格按归属 `sessionId` | 来源优先、活跃会话兜底 |
 | 共用机制 | 均经 `SessionNotifyRegistry` 注入会话 silent 输入 | 同左 |

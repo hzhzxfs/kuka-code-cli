@@ -17,10 +17,10 @@ namespace Kukacore.Runtime;
 ///     <c>KUKA_BRIDGE_PORT_ACTUAL=&lt;port&gt;</c> 端口握手（KUKA_BRIDGE_PORT=0 由系统分配空闲端口，
 ///     多实例不撞端口）。NewConnection 预接 portTask，进程就绪前的指令自动缓冲。</item>
 ///   <item><b>sidecar 目录解析</b>：构造参数显式指定 → KUKA_SIDECAR_DIR 环境变量 →
-///     程序集内嵌 <c>kuka-sidecar/server.js</c> 释放到 <c>~/.kuka/csharp-sdk-sidecar</c>
+///     程序集内嵌 <c>kuka-sidecar/server.js</c> 释放到 <c>~/.kukacode/csharp-sdk-sidecar</c>
 ///     （≙ Java jar 内嵌 / Python 包数据）。</item>
 ///   <item><b>Node 供应可插拔</b>：默认 <see cref="NodeProviders.System"/> 走「本地优先 →
-///     ~/.kuka/node 缓存 → 按需下载」（KUKA_NODE_PATH → 登录 shell PATH → 常见路径 →
+///     ~/.kukacode/node 缓存 → 按需下载」（KUKA_NODE_PATH → 登录 shell PATH → 常见路径 →
 ///     缓存 → 下载）；需要其他策略的宿主注入 <see cref="NodeProvider"/>。</item>
 ///   <item>注入 <c>KUKA_BRIDGE_PARENT_OWNED=1</c>：生命周期归本 manager（Close 发 SIGTERM），
 ///     终端宿主的 Ctrl-C 广播 SIGINT 时桥忽略，保住「第一次 Ctrl-C 只中断会话」语义。</item>
@@ -50,7 +50,7 @@ public sealed class SidecarManager : IAsyncDisposable
     /// <param name="workingDir">Agent 操作的目标工程路径（KUKA_WORKING_DIR），默认当前目录</param>
     /// <param name="env">附加/覆盖 sidecar 子进程环境变量</param>
     /// <param name="nodeProvider">Node 供应策略，默认 <see cref="NodeProviders.System"/></param>
-    /// <param name="extractDir">程序集内嵌 sidecar 的释放目录，默认 ~/.kuka/csharp-sdk-sidecar</param>
+    /// <param name="extractDir">程序集内嵌 sidecar 的释放目录，默认 ~/.kukacode/csharp-sdk-sidecar</param>
     /// <param name="logConsumer">sidecar stdout/stderr 行消费者（接宿主日志系统）</param>
     /// <param name="onExit">进程退出回调（参数为退出码）；宿主可据此决定重启策略</param>
     public SidecarManager(
@@ -67,7 +67,7 @@ public sealed class SidecarManager : IAsyncDisposable
         _nodeProvider = nodeProvider ?? NodeProviders.System();
         _extraEnv = new Dictionary<string, string>(env ?? new Dictionary<string, string>());
         _extractDir = extractDir ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kuka", "csharp-sdk-sidecar");
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".kukacode", "csharp-sdk-sidecar");
         _logConsumer = logConsumer;
         _onExit = onExit;
     }

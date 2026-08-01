@@ -2,7 +2,7 @@ import * as path from 'path';
 import { getDayTimeString } from './time';
 import { expandHome, unixDriveToNative } from './platform';
 import {
-  KUKA_ROOT,
+  KUKACODE_ROOT,
   MODEL_CONF_FILE_PATH,
   PROJECT_CONF_FILE_PATH,
   HISTORY_DIR_PATH,
@@ -13,43 +13,43 @@ import {
   EVENT_DIR_PATH
 } from '../conf/config';
 
-let _kukaRootDir: string | undefined;
+let _kukacodeRootDir: string | undefined;
 
 /**
  * 获取 Kuka 根目录路径
- * 默认为 ~/.kuka，可通过环境变量 KUKA_ROOT 自定义
+ * 默认为 ~/.kukacode，可通过环境变量 KUKACODE_ROOT 自定义
  * 跨平台兼容：Windows、macOS、Linux
  */
-export function getKukaRootDir(): string {
-  if (!_kukaRootDir) {
-    const customRoot = process.env.KUKA_ROOT;
-    _kukaRootDir = customRoot
+export function getKukacodeRootDir(): string {
+  if (!_kukacodeRootDir) {
+    const customRoot = process.env.KUKACODE_ROOT;
+    _kukacodeRootDir = customRoot
       ? path.resolve(unixDriveToNative(customRoot))
-      : expandHome(KUKA_ROOT);
-    // console.log('[getKukaRootDir]', _kukaRootDir);
+      : expandHome(KUKACODE_ROOT);
+    // console.log('[getKukacodeRootDir]', _kukacodeRootDir);
   }
-  return _kukaRootDir;
+  return _kukacodeRootDir;
 }
 
 /**
  * 获取模型配置文件路径
  */
 export function getModelConfigFilePath(): string {
-  return path.join(getKukaRootDir(), MODEL_CONF_FILE_PATH);
+  return path.join(getKukacodeRootDir(), MODEL_CONF_FILE_PATH);
 }
 
 /**
  * 获取项目配置文件路径
  */
 export function getProjectConfigFilePath(): string {
-  return path.join(getKukaRootDir(), PROJECT_CONF_FILE_PATH);
+  return path.join(getKukacodeRootDir(), PROJECT_CONF_FILE_PATH);
 }
 
 /**
  * 获取历史记录根目录路径
  */
 export function getHistoryDir(): string {
-  return path.join(getKukaRootDir(), HISTORY_DIR_PATH);
+  return path.join(getKukacodeRootDir(), HISTORY_DIR_PATH);
 }
 
 /**
@@ -75,7 +75,7 @@ export function getProjectHistoryDir(projectPath: string): string {
  * 获取 Fork 快照根目录路径
  */
 export function getSnapshotsDir(): string {
-  return path.join(getKukaRootDir(), SNAPSHOTS_DIR_PATH);
+  return path.join(getKukacodeRootDir(), SNAPSHOTS_DIR_PATH);
 }
 
 /**
@@ -105,28 +105,28 @@ export function getHistoryFilePath(sessionId: string, projectPath?: string, noDa
  * 获取日志目录路径
  */
 export function getLogsDir(): string {
-  return path.join(getKukaRootDir(), LOG_DIR_PATH);
+  return path.join(getKukacodeRootDir(), LOG_DIR_PATH);
 }
 
 /**
  * 获取LLM日志目录路径
  */
 export function getLLMLogsDir(): string {
-  return path.join(getKukaRootDir(), LLM_LOG_DIR_PATH);
+  return path.join(getKukacodeRootDir(), LLM_LOG_DIR_PATH);
 }
 
 /**
  * 获取轨迹归档目录路径
  */
 export function getTracksDir(): string {
-  return path.join(getKukaRootDir(), TRACKS_DIR_PATH);
+  return path.join(getKukacodeRootDir(), TRACKS_DIR_PATH);
 }
 
 /**
  * 获取缓存目录路径
  */
 export function getCacheDir(): string {
-  return path.join(getKukaRootDir(), 'cache');
+  return path.join(getKukacodeRootDir(), 'cache');
 }
 
 /**
@@ -140,5 +140,5 @@ export function getLLMCacheFilePath(): string {
  * 获取事件日志目录路径
  */
 export function getEventDir(): string {
-  return path.join(getKukaRootDir(), EVENT_DIR_PATH);
+  return path.join(getKukacodeRootDir(), EVENT_DIR_PATH);
 }

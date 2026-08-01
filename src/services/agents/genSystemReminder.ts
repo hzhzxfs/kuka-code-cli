@@ -50,7 +50,7 @@ ${REMINDER_SYS_CLOSE}`
 
 export function generatePlanReminders(): Anthropic.ContentBlockParam[] {
   const currentDir = readInitialCwd()
-  const plansDir = path.join(currentDir, '.kuka/', 'plans/')
+  const plansDir = path.join(currentDir, '.kukacode/', 'plans/')
 
   const rulesReminder = PLAN_MODE_SYSTEM_REMINDER_PROMPT(plansDir)
 

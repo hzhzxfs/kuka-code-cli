@@ -63,14 +63,14 @@ MCP 配置从多个来源加载，按优先级从高到低，后加载的覆盖�
 
 | 优先级 | 来源 | 配置文件路径 |
 |-------|------|-------------|
-| 1（最高） | Kuka 项目级 | `<project>/.kuka/.mcp.json` |
-| 2 | Kuka 用户级 | `~/.kuka/.mcp.json` |
+| 1（最高） | Kuka 项目级 | `<project>/.kukacode/.mcp.json` |
+| 2 | Kuka 用户级 | `~/.kukacode/.mcp.json` |
 | 3 | 插件 MCP | 已启用插件的 MCP 组件 |
 
 > **注意**：
 > - 插件来源的 MCP 服务器名称格式为 `plugin:插件名:server 名`
-> - 服务启用/禁用状态保存在 `.kuka/settings.json` 的 `disabledMcpServers` 字段
-> - 工具过滤配置保存在 `.kuka/settings.json` 的 `enabledMcpServerUseTools` 字段
+> - 服务启用/禁用状态保存在 `.kukacode/settings.json` 的 `disabledMcpServers` 字段
+> - 工具过滤配置保存在 `.kukacode/settings.json` 的 `enabledMcpServerUseTools` 字段
 
 ## 管理 MCP 服务器
 
@@ -219,7 +219,7 @@ kuka.on('mcp:server:status', (info) => {
 
 ## 配置文件示例
 
-### 用户级配置（~/.kuka/.mcp.json）
+### 用户级配置（~/.kukacode/.mcp.json）
 
 ```json
 {
@@ -238,7 +238,7 @@ kuka.on('mcp:server:status', (info) => {
 }
 ```
 
-### 项目级配置（<project>/.kuka/.mcp.json）
+### 项目级配置（<project>/.kukacode/.mcp.json）
 
 ```json
 {
@@ -259,7 +259,7 @@ kuka.on('mcp:server:status', (info) => {
 }
 ```
 
-### 项目级设置（<project>/.kuka/settings.json）
+### 项目级设置（<project>/.kukacode/settings.json）
 
 ```json
 {

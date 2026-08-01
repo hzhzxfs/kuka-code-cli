@@ -1,8 +1,8 @@
 # 怎么使用 Kuka Code
 
-## 一、LLM配置：直接手写 `~/.kuka/model.conf`
+## 一、LLM配置：直接手写 `~/.kukacode/model.conf`
 
-配置文件就是普通 JSON，路径在你的用户目录：`~/.kuka/model.conf` (Windows 即 `C:\Users\你的用户名\.kuka\model.conf`)。
+配置文件就是普通 JSON，路径在你的用户目录：`~/.kukacode/model.conf` (Windows 即 `C:\Users\你的用户名\.kukacode\model.conf`)。
 
 格式如下：
 
@@ -104,8 +104,8 @@ node "C:\work\kuka agent\kuka-code\kuka-code-core-main\bin\cc.js" %*
 
 | 作用域 | 目录 | 说明 |
 | :--- | :--- | :--- |
-| 用户级（全局） | `~/.kuka/skills/<skill名>/SKILL.md` | 对所有项目生效（Windows：`C:\Users\你的用户名\.kuka\skills\...`） |
-| 项目级（当前目录） | `<你运行 cc 的目录>/.kuka/skills/<skill名>/SKILL.md` | 只对当前项目生效，**同名时优先级最高，会覆盖用户级** |
+| 用户级（全局） | `~/.kukacode/skills/<skill名>/SKILL.md` | 对所有项目生效（Windows：`C:\Users\你的用户名\.kukacode\skills\...`） |
+| 项目级（当前目录） | `<你运行 cc 的目录>/.kukacode/skills/<skill名>/SKILL.md` | 只对当前项目生效，**同名时优先级最高，会覆盖用户级** |
 
 > 优先级顺序：**插件 < 用户级 < 项目级**。同名 skill，后加载的覆盖先加载的。
 
@@ -114,7 +114,7 @@ node "C:\work\kuka agent\kuka-code\kuka-code-core-main\bin\cc.js" %*
 每个 skill 是一个**子目录**，里面放一个 `SKILL.md`：
 
 ```
-~/.kuka/skills/
+~/.kukacode/skills/
 └── my-translator/          ← 目录名随意，仅作文件夹
     └── SKILL.md            ← 必须是这个文件名
 ```
@@ -147,16 +147,16 @@ description: 把用户给的任意文本翻译成英文，并保留术语表
 
 ```bash
 # Windows 示例：用户级
-mkdir "%USERPROFILE%\.kuka\skills\my-translator"
+mkdir "%USERPROFILE%\.kukacode\skills\my-translator"
 # 用记事本或任意编辑器写入上面的 SKILL.md
-notepad "%USERPROFILE%\.kuka\skills\my-translator\SKILL.md"
+notepad "%USERPROFILE%\.kukacode\skills\my-translator\SKILL.md"
 
 # 验证
 cc skills
 # 应能看到：• my-translator  — 把用户给的任意文本翻译成英文...
 ```
 
-项目级同理，只是目录换成 `你的项目\.kuka\skills\`。
+项目级同理，只是目录换成 `你的项目\.kukacode\skills\`。
 
 ---
 
@@ -168,8 +168,8 @@ cc skills
 
 | 作用域 | 配置文件 | 说明 |
 | :--- | :--- | :--- |
-| 用户级（全局） | `~/.kuka/.mcp.json` | 对所有项目生效 |
-| 项目级（当前目录） | `<你运行 cc 的目录>/.kuka/.mcp.json` | 只对当前项目生效，优先级更高 |
+| 用户级（全局） | `~/.kukacode/.mcp.json` | 对所有项目生效 |
+| 项目级（当前目录） | `<你运行 cc 的目录>/.kukacode/.mcp.json` | 只对当前项目生效，优先级更高 |
 
 ### 2. 配置文件格式
 
@@ -259,8 +259,8 @@ cc skills
 ### 4. 实战：加一个 MCP
 
 ```bash
-# 用户级：直接编辑/新建 ~/.kuka/.mcp.json（内容见上方示例）
-notepad "%USERPROFILE%\.kuka\.mcp.json"
+# 用户级：直接编辑/新建 ~/.kukacode/.mcp.json（内容见上方示例）
+notepad "%USERPROFILE%\.kukacode\.mcp.json"
 
 # 验证（列出已识别的 MCP，会显示连接状态）
 cc mcp

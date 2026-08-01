@@ -9,7 +9,7 @@ import * as fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import * as path from 'path'
 import { logDebug, logError, logInfo, logWarn } from '../../util/log'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { execFileSafely } from '../../util/file'
 import { searchWithRipgrep } from '../../util/ripgrep'
@@ -35,18 +35,18 @@ import type {
 // ===================== PluginsManager 类 =====================
 
 class PluginsManager {
-  private kukaRootDir: string           // ~/.kuka
-  private pluginsBaseDir: string        // ~/.kuka/plugins
-  private marketplacesDir: string       // ~/.kuka/plugins/marketplaces
-  private cacheDir: string              // ~/.kuka/plugins/cache
-  private knownMarketplacesFile: string // ~/.kuka/plugins/known_marketplaces.json
-  private installedPluginsFile: string  // ~/.kuka/plugins/installed_plugins.json
+  private kukaRootDir: string           // ~/.kukacode
+  private pluginsBaseDir: string        // ~/.kukacode/plugins
+  private marketplacesDir: string       // ~/.kukacode/plugins/marketplaces
+  private cacheDir: string              // ~/.kukacode/plugins/cache
+  private knownMarketplacesFile: string // ~/.kukacode/plugins/known_marketplaces.json
+  private installedPluginsFile: string  // ~/.kukacode/plugins/installed_plugins.json
 
   private marketplacePluginsInfoCache: MarketplacePluginsInfo | null = null
   private loadingPromise: Promise<MarketplacePluginsInfo> | null = null
 
   constructor() {
-    this.kukaRootDir = getKukaRootDir()
+    this.kukaRootDir = getKukacodeRootDir()
     this.pluginsBaseDir = path.join(this.kukaRootDir, 'plugins')
     this.marketplacesDir = path.join(this.pluginsBaseDir, 'marketplaces')
     this.cacheDir = path.join(this.pluginsBaseDir, 'cache')
@@ -103,8 +103,8 @@ class PluginsManager {
   private getSettingsFilePath(scope: PluginScopeKind, projectPath?: string): string {
     const cwd = projectPath || readInitialCwd()
     switch (scope) {
-      case 'local':   return path.join(cwd, '.kuka', 'settings.local.json')
-      case 'project': return path.join(cwd, '.kuka', 'settings.json')
+      case 'local':   return path.join(cwd, '.kukacode', 'settings.local.json')
+      case 'project': return path.join(cwd, '.kukacode', 'settings.json')
       case 'user':    return path.join(this.kukaRootDir, 'settings.json')
     }
   }
@@ -431,7 +431,7 @@ class PluginsManager {
 
   /**
    * 安装插件
-   * 备份到 ~/.kuka/plugins/cache/市场/插件/版本
+   * 备份到 ~/.kukacode/plugins/cache/市场/插件/版本
    * 在对应 scope 的 settings 中设置 enabledPlugins
    */
   async installPlugin(

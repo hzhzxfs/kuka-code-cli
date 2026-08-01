@@ -1,6 +1,6 @@
 # Kuka C# SDK
 
-kuka-code 的 C# SDK（NuGet `Kukacore`）：gRPC 桥（`../shared/bridge/`）的薄客户端，typed DTO、原生 async/await，.NET 8+。core 只有 Node 一份实现，SDK 负责连接管理、指令/事件、sidecar 托管，不重写任何 core 逻辑。sidecar 内嵌在程序集里自动释放拉起，加一个 NuGet 依赖即开箱即用（Node 18+ 本地优先探测，探测不到自动下载到 `~/.kuka/node`）。使用示例见 `example/csharp-demo`。
+kuka-code 的 C# SDK（NuGet `Kukacore`）：gRPC 桥（`../shared/bridge/`）的薄客户端，typed DTO、原生 async/await，.NET 8+。core 只有 Node 一份实现，SDK 负责连接管理、指令/事件、sidecar 托管，不重写任何 core 逻辑。sidecar 内嵌在程序集里自动释放拉起，加一个 NuGet 依赖即开箱即用（Node 18+ 本地优先探测，探测不到自动下载到 `~/.kukacode/node`）。使用示例见 `example/csharp-demo`。
 
 ## 目录结构
 

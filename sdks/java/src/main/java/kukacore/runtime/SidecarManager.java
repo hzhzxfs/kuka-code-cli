@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
  *       kuka.sidecar.dir 系统属性 → classpath {@code kuka-sidecar/server.js} 释放到本地缓存
  *       （为三期「桥产物内嵌 SDK jar」预留，当前 jar 未内嵌）。</li>
  *   <li><b>Node 供应可插拔</b>：默认 {@link NodeProviders#system()} 走「本地优先 →
- *       {@code ~/.kuka/node} 缓存 → 按需下载」；需要其他策略的宿主注入自己的
+ *       {@code ~/.kukacode/node} 缓存 → 按需下载」；需要其他策略的宿主注入自己的
  *       {@link NodeProvider}。</li>
  * </ul>
  */
@@ -71,7 +71,7 @@ public final class SidecarManager implements AutoCloseable {
         this.extraEnv = b.env;
         this.prependPath = b.prependPath;
         this.extractDir = b.extractDir != null ? b.extractDir
-                : Path.of(System.getProperty("user.home"), ".kuka", "java-sdk-sidecar");
+                : Path.of(System.getProperty("user.home"), ".kukacode", "java-sdk-sidecar");
         this.logConsumer = b.logConsumer;
         this.onExit = b.onExit;
     }
@@ -318,7 +318,7 @@ public final class SidecarManager implements AutoCloseable {
             return this;
         }
 
-        /** classpath 内嵌 sidecar 的释放目录，默认 ~/.kuka/java-sdk-sidecar。 */
+        /** classpath 内嵌 sidecar 的释放目录，默认 ~/.kukacode/java-sdk-sidecar。 */
         public Builder extractDir(Path dir) {
             this.extractDir = dir;
             return this;

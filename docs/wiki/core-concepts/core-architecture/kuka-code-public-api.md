@@ -253,7 +253,7 @@ enableCronTask(id: string): boolean
 disableCronTask(id: string): boolean
 ```
 
-> 定时任务由 `CronManager` 统一管理，支持一次性任务和循环任务。`persist=true` 的任务存储在项目目录 `.kuka/scheduled_tasks.json` 中；禁用状态存储在 `.kuka/settings.json` 的 `disabledCronTasks` 中。
+> 定时任务由 `CronManager` 统一管理，支持一次性任务和循环任务。`persist=true` 的任务存储在项目目录 `.kukacode/scheduled_tasks.json` 中；禁用状态存储在 `.kukacode/settings.json` 的 `disabledCronTasks` 中。
 
 ## 清理
 

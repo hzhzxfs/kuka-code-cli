@@ -207,12 +207,12 @@ processQuery.finally()
 
 | 管理器 | 职责 | 持久化路径 |
 |--------|------|-----------|
-| StateManager | `sessionId -> SessionRuntime` 注册表；每个 Runtime 再按 `agentId` 隔离消息、Todos 和状态 | `~/.kuka/history/<project>/` |
-| ConfManager | 核心配置、按工作目录隔离的项目配置 | `~/.kuka/projects.conf` |
-| ModelManager | 模型配置与 main/quick 指针 | `~/.kuka/model.conf` |
+| StateManager | `sessionId -> SessionRuntime` 注册表；每个 Runtime 再按 `agentId` 隔离消息、Todos 和状态 | `~/.kukacode/history/<project>/` |
+| ConfManager | 核心配置、按工作目录隔离的项目配置 | `~/.kukacode/projects.conf` |
+| ModelManager | 模型配置与 main/quick 指针 | `~/.kukacode/model.conf` |
 | PermissionManager | 工具执行权限检查；文件编辑 allow 权限按会话生效 | 项目配置中的 `allowedTools` |
 | TaskManager | RunShell/SubAgent 后台任务；按会话过滤、限流、通知 | 临时目录 `os.tmpdir()/kuka-tasks/` |
-| CronManager | 定时任务创建、执行、持久化；触发时优先投递来源会话，兜底投递活跃会话 | 项目级 `.kuka/scheduled_tasks.json` |
+| CronManager | 定时任务创建、执行、持久化；触发时优先投递来源会话，兜底投递活跃会话 | 项目级 `.kukacode/scheduled_tasks.json` |
 
 ### Event System — 事件系统
 
@@ -226,14 +226,14 @@ processQuery.finally()
 
 | 扩展类型 | 扩展方式 | 存放位置 |
 |---------|---------|---------|
-| MCP 工具 | `addMCPServer()` API 或编辑 MCP 配置 | 用户级 `~/.kuka/.mcp.json` / 项目级 `.kuka/.mcp.json` |
-| Skill | 创建 SKILL.md | 用户级 `~/.kuka/skills/` / 项目级 `.kuka/skills/` |
-| SubAgent | 创建 Agent 配置 `.md` | 用户级 `~/.kuka/agents/` / 项目级 `.kuka/agents/` |
-| 自定义命令 | 创建命令 `.md` | 用户级 `~/.kuka/commands/` / 项目级 `.kuka/commands/` |
-| 自定义模型 | `addModel()` API | `~/.kuka/model.conf` |
+| MCP 工具 | `addMCPServer()` API 或编辑 MCP 配置 | 用户级 `~/.kukacode/.mcp.json` / 项目级 `.kukacode/.mcp.json` |
+| Skill | 创建 SKILL.md | 用户级 `~/.kukacode/skills/` / 项目级 `.kukacode/skills/` |
+| SubAgent | 创建 Agent 配置 `.md` | 用户级 `~/.kukacode/agents/` / 项目级 `.kukacode/agents/` |
+| 自定义命令 | 创建命令 `.md` | 用户级 `~/.kukacode/commands/` / 项目级 `.kukacode/commands/` |
+| 自定义模型 | `addModel()` API | `~/.kukacode/model.conf` |
 | 插件市场 | `addMarketplaceFromGit()` / `addMarketplaceFromDirectory()` API | 由 PluginsManager 管理 |
-| Memory | 创建 `MEMORY.md` | 项目级 `.kuka/memory/MEMORY.md` |
-| Rule | 创建规则文件 `AGENTS.md` | 用户级 `~/.kuka/AGENTS.md` / 项目根 `AGENTS.md` |
+| Memory | 创建 `MEMORY.md` | 项目级 `.kukacode/memory/MEMORY.md` |
+| Rule | 创建规则文件 `AGENTS.md` | 用户级 `~/.kukacode/AGENTS.md` / 项目根 `AGENTS.md` |
 
 ## 关键运行时特性
 

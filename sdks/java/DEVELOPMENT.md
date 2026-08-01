@@ -1,6 +1,6 @@
 # Kuka Java SDK
 
-kuka-code 的 Java SDK（Maven `kuka-code`）：gRPC 桥（`../shared/bridge/`）的薄客户端，typed DTO、请求方法同步阻塞直接返回，Java 17+。core 只有 Node 一份实现，SDK 负责连接管理、指令/事件、sidecar 托管，不重写任何 core 逻辑。sidecar 内嵌在 jar 里自动释放拉起，加一个 Maven 依赖即开箱即用（Node 18+ 本地优先探测，探测不到自动下载到 `~/.kuka/node`）。使用示例见 `example/java-demo`。
+kuka-code 的 Java SDK（Maven `kuka-code`）：gRPC 桥（`../shared/bridge/`）的薄客户端，typed DTO、请求方法同步阻塞直接返回，Java 17+。core 只有 Node 一份实现，SDK 负责连接管理、指令/事件、sidecar 托管，不重写任何 core 逻辑。sidecar 内嵌在 jar 里自动释放拉起，加一个 Maven 依赖即开箱即用（Node 18+ 本地优先探测，探测不到自动下载到 `~/.kukacode/node`）。使用示例见 `example/java-demo`。
 
 ## 目录结构
 

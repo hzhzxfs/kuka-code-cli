@@ -58,13 +58,13 @@ diff('server.ts 路由表 == manifest actions', routeActions, manifestActions, '
 //    调用点形态：client.call("x" / jsonCall("x" / voidCall("x" / pluginCall(action 变量由重载传入，另抓 pluginCall("x"
 const javaActionRe = /(?:client\.call|jsonCall|voidCall|pluginCall)\(\s*"([A-Za-z]+)"/g;
 const javaActions = new Set([
-  ...[...kukaCoreJava.matchAll(javaActionRe)].map((m) => m[1]),
-  ...[...kukaSessionJava.matchAll(javaActionRe)].map((m) => m[1]),
+  ...[...kukacodeCoreJava.matchAll(javaActionRe)].map((m) => m[1]),
+  ...[...kukacodeSessionJava.matchAll(javaActionRe)].map((m) => m[1]),
 ]);
 diff('Java KukaCore/KukaSession 镜像方法 == manifest actions', javaActions, manifestActions, 'Java', 'manifest');
 
 // ③ Java 事件常量 vs manifest 事件
-const javaEvents = new Set([...kukaEventsJava.matchAll(/=\s*"([a-zA-Z:]+)"/g)].map((m) => m[1]));
+const javaEvents = new Set([...kukacodeEventsJava.matchAll(/=\s*"([a-zA-Z:]+)"/g)].map((m) => m[1]));
 const manifestEvents = new Set([
   ...manifest.events.session,
   ...manifest.events.process,
@@ -85,13 +85,13 @@ diff('Python events.py 常量 == manifest 事件清单', pyEvents, manifestEvent
 //    调用点形态：client.Call("x" / _client.Call("x" / JsonCall("x" / VoidCall("x" / PluginCall("x"
 const csActionRe = /(?:client\.Call|JsonCall|VoidCall|PluginCall)\(\s*"([A-Za-z]+)"/g;
 const csActions = new Set([
-  ...[...kukaCoreCs.matchAll(csActionRe)].map((m) => m[1]),
-  ...[...kukaSessionCs.matchAll(csActionRe)].map((m) => m[1]),
+  ...[...kukacodeCoreCs.matchAll(csActionRe)].map((m) => m[1]),
+  ...[...kukacodeSessionCs.matchAll(csActionRe)].map((m) => m[1]),
 ]);
 diff('C# KukaCore/KukaSession 镜像方法 == manifest actions', csActions, manifestActions, 'C#', 'manifest');
 
 // ⑦ C# 事件常量 vs manifest 事件
-const csEvents = new Set([...kukaEventsCs.matchAll(/=\s*"([a-zA-Z:]+)"/g)].map((m) => m[1]));
+const csEvents = new Set([...kukacodeEventsCs.matchAll(/=\s*"([a-zA-Z:]+)"/g)].map((m) => m[1]));
 diff('C# KukaEvents 常量 == manifest 事件清单', csEvents, manifestEvents, 'C#', 'manifest');
 
 // ⑧ 协议版本五处一致

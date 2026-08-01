@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import * as fs from 'fs'
 import * as path from 'path'
 import { readInitialCwd } from '../../util/cwd'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { logError } from '../../util/log'
 import { DESIGN_MODE_SYSTEM_REMINDER_PROMPT, ProjectDesignState } from '../../prompt/design/design'
 import { getDesignManager } from '../design/designManager'
@@ -10,7 +10,7 @@ import { getDesignManager } from '../design/designManager'
 const DESIGN_MD_MAX_LINES = 500
 
 /**
- * 扫描项目 .kuka/design/ 下的现有产物，注入到 system reminder，避免 step 0 用 shell 探测
+ * 扫描项目 .kukacode/design/ 下的现有产物，注入到 system reminder，避免 step 0 用 shell 探测
  */
 function scanProjectDesignState(
   projectDesignRoot: string,
@@ -82,7 +82,7 @@ function scanProjectDesignState(
 
 export function generateDesignReminders(): Anthropic.ContentBlockParam[] {
   const currentDir = readInitialCwd()
-  const projectDesignRoot = path.join(currentDir, '.kuka/design/')
+  const projectDesignRoot = path.join(currentDir, '.kukacode/design/')
   const projectSkillsDir = path.join(projectDesignRoot, 'skills/')
   const projectCodeDir = path.join(projectDesignRoot, 'code/')
   const projectScreenDir = path.join(projectDesignRoot, 'screen/')
@@ -95,7 +95,7 @@ export function generateDesignReminders(): Anthropic.ContentBlockParam[] {
     }
   }
 
-  const kukaRoot = getKukaRootDir()
+  const kukaRoot = getKukacodeRootDir()
   const globalSkillsRoot = path.join(kukaRoot, 'designs/skills')
   const globalDesignSystemsRoot = path.join(kukaRoot, 'designs/design-systems')
   const projectDesignDoc = path.join(projectDesignRoot, 'DESIGN.md')

@@ -5,7 +5,7 @@
  *   npm run cli /path/to/project           # 指定项目目录（必填），新建会话
  *   npm run cli /path/to/project <会话id>   # 指定目录 + 加载历史会话
  *
- * 模型自动读取 ~/.kuka/model.conf（见 README），代码里无需配置模型。
+ * 模型自动读取 ~/.kukacode/model.conf（见 README），代码里无需配置模型。
  */
 import { KukaCore } from 'kuka-code';
 import type { KukaSession } from 'kuka-code';

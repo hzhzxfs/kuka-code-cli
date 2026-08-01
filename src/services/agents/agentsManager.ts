@@ -10,7 +10,7 @@ import { promises as fsPromises } from 'fs'
 import * as path from 'path'
 import { AgentConfig, AgentScope } from '../../types/agent'
 import { logDebug, logError, logInfo, logWarn } from '../../util/log'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { parseFile } from '../../util/formatter'
 import { DEFAULT_BUILT_IN_AGENTS_CONFS } from '../../prompt/agents'
@@ -21,8 +21,8 @@ import { getPluginsManager } from '../plugins/pluginsManager'
  * Agents 管理器类 - 单例模式
  */
 class AgentsManager {
-  private kukaUserAgentsDir: string     // ~/.kuka/agents
-  private kukaProjectAgentsDir: string  // <project>/.kuka/agents
+  private kukaUserAgentsDir: string     // ~/.kukacode/agents
+  private kukaProjectAgentsDir: string  // <project>/.kukacode/agents
 
   private agentConfigs: Map<string, AgentConfig> = new Map()
   // Agents 信息缓存
@@ -31,10 +31,10 @@ class AgentsManager {
   private loadingPromise: Promise<AgentConfig[]> | null = null
 
   constructor() {
-    this.kukaUserAgentsDir = path.join(getKukaRootDir(), 'agents')
+    this.kukaUserAgentsDir = path.join(getKukacodeRootDir(), 'agents')
 
     const cwd = readInitialCwd()
-    this.kukaProjectAgentsDir = path.join(cwd, '.kuka', 'agents')
+    this.kukaProjectAgentsDir = path.join(cwd, '.kukacode', 'agents')
 
     // 后台静默加载 agents 信息
     this.loadingPromise = this.loadAndCacheAgents()

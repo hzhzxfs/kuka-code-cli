@@ -33,7 +33,7 @@
     <!-- 构建期从唯一协议源生成 stub（不入库）；Access=Internal：protobuf 类型不泄漏到公共 API -->
     <Protobuf Include="../shared/proto/kuka.proto" ProtoRoot="../shared/proto" GrpcServices="Client" Access="Internal" />
     <!-- sidecar 随 SDK 分发：桥的自包含产物内嵌进程序集（kuka-sidecar/），
-         SidecarManager.ExtractBundledSidecar 运行时释放到 ~/.kuka，
+         SidecarManager.ExtractBundledSidecar 运行时释放到 ~/.kukacode，
          「SDK 版本 = 桥版本 = core 版本」一次锁定 -->
     <EmbeddedResource Include="../shared/bridge/dist/server.js" LogicalName="kuka-sidecar/server.js" />
     <EmbeddedResource Include="../shared/proto/kuka.proto" LogicalName="kuka-sidecar/proto/kuka.proto" />

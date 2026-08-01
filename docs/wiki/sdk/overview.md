@@ -16,7 +16,7 @@ kuka-code (npm 包)
 - **api**:`KukaCore` / `KukaSession` 镜像 API,用法 ≈ Node
 - **protocol**:指令/响应匹配、事件分发(`on` / `once` / `waitFor`)
 - **transport**:gRPC 双向流、断线重连、就绪前缓冲、多连接
-- **runtime**:sidecar 托管(自动释放内嵌桥产物并拉起;Node 供应走「本地探测 → `~/.kuka/node` 缓存 → 按需下载」,内网可用 `KUKA_NODE_BASE_URL` 指镜像)
+- **runtime**:sidecar 托管(自动释放内嵌桥产物并拉起;Node 供应走「本地探测 → `~/.kukacode/node` 缓存 → 按需下载」,内网可用 `KUKA_NODE_BASE_URL` 指镜像)
 
 ## 安装
 

@@ -92,8 +92,8 @@ kuka-code/
 | 模块 | 职责 |
 |---|---|
 | **StateManager** | 多会话状态注册表：`sessionId -> SessionRuntime`；会话内再按 Agent 隔离消息历史、文件读取时间戳、待办事项和状态 |
-| **ConfManager** | 配置管理：维护 `KukaCoreConfig`（工作目录、日志级别、流式输出、默认 Agent 模式、`useTools`/`disabledTools`、`maxSessions`、`disableBackgroundTasks` 等），持久化项目配置到 `~/.kuka/projects.conf` |
-| **ModelManager** | 模型配置管理：持久化到 `~/.kuka/model.conf`，支持双模型指针（`main` 主模型 + `quick` 轻量模型），CRUD 操作及任务模型应用 |
+| **ConfManager** | 配置管理：维护 `KukaCoreConfig`（工作目录、日志级别、流式输出、默认 Agent 模式、`useTools`/`disabledTools`、`maxSessions`、`disableBackgroundTasks` 等），持久化项目配置到 `~/.kukacode/projects.conf` |
+| **ModelManager** | 模型配置管理：持久化到 `~/.kukacode/model.conf`，支持双模型指针（`main` 主模型 + `quick` 轻量模型），CRUD 操作及任务模型应用 |
 | **PermissionManager** | 分层权限系统：文件编辑（会话级）、RunShell 命令（白名单 + LLM 分析 + 项目持久化）、Skill/MCP 工具（按工具持久化） |
 | **TaskManager** | 后台任务调度：管理 RunShell 与 SubAgent 后台进程，按会话限流、过滤列表、停止任务和投递完成通知 |
 | **CronManager** | 定时任务管理：基于 cron 表达式调度，触发时优先投递来源会话，兜底投递 UI 活跃会话 |
@@ -104,7 +104,7 @@ kuka-code/
 |---|---|
 | **api/** | LLM 抽象层，根据模型配置路由到 Anthropic 或 OpenAI 适配器，支持流式输出、LRU 缓存与连通性测试 |
 | **mcp/** | MCP 协议集成，管理全局和项目级 MCP 服务器配置，支持 `stdio`/`sse`/`http` 传输，工具缓存与文件 mtime 失效策略 |
-| **agents/** | 子 Agent 系统，从 `.md` 文件加载 Agent 配置（用户级 `~/.kuka/agents/` + 项目级 `.kuka/agents/`），支持内置 + 自定义 Agent，并提供 `genSystemPrompt`、systemReminder 注入 |
+| **agents/** | 子 Agent 系统，从 `.md` 文件加载 Agent 配置（用户级 `~/.kukacode/agents/` + 项目级 `.kukacode/agents/`），支持内置 + 自定义 Agent，并提供 `genSystemPrompt`、systemReminder 注入 |
 | **skills/** | Skill 插件系统，基于带 YAML frontmatter 的 Markdown 文件，项目级覆盖用户级 |
 | **commands/** | 系统命令（`/clear`、`/compact`、`/quickchat` 等）和自定义命令分发 |
 | **design/** | 设计资源管理，加载 Design Skill 与 Design System 信息 |
@@ -190,16 +190,16 @@ package.json 提供了多个导出入口：
 
 | 文件 / 目录 | 用途 |
 |---|---|
-| `~/.kuka/model.conf` | 模型配置 |
-| `~/.kuka/projects.conf` | 项目级配置（含输入历史、`allowedTools` 等） |
-| `~/.kuka/history/<project>/` | 会话消息历史（按项目目录隔离） |
-| `~/.kuka/logs/` | 服务日志 |
-| `~/.kuka/llm_logs/` | LLM 调用日志 |
-| `~/.kuka/tracks/` | LLM 调用轨迹归档 |
-| `~/.kuka/event/` | 事件日志 |
-| `~/.kuka/cache/llm-cache.json` | LLM LRU 缓存 |
+| `~/.kukacode/model.conf` | 模型配置 |
+| `~/.kukacode/projects.conf` | 项目级配置（含输入历史、`allowedTools` 等） |
+| `~/.kukacode/history/<project>/` | 会话消息历史（按项目目录隔离） |
+| `~/.kukacode/logs/` | 服务日志 |
+| `~/.kukacode/llm_logs/` | LLM 调用日志 |
+| `~/.kukacode/tracks/` | LLM 调用轨迹归档 |
+| `~/.kukacode/event/` | 事件日志 |
+| `~/.kukacode/cache/llm-cache.json` | LLM LRU 缓存 |
 
-> Kuka 根目录可通过环境变量 `KUKA_ROOT` 自定义。
+> Kuka 根目录可通过环境变量 `KUKACODE_ROOT` 自定义。
 
 ## 构建与开发
 

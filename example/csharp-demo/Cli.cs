@@ -14,7 +14,7 @@ namespace Kuka.Example.Demo;
 ///   dotnet run -- /path/to/project           指定项目目录（必填），新建会话
 ///   dotnet run -- /path/to/project 会话id     指定目录 + 加载历史会话
 ///
-/// 模型自动读取 ~/.kuka/model.conf（见 README），代码里无需配置模型。
+/// 模型自动读取 ~/.kukacode/model.conf（见 README），代码里无需配置模型。
 ///
 /// 中断语义与 Node 版一致：esc / Ctrl-C 第一次中断当前轮（session.Interrupt()），第二次退出；
 /// 恢复运行（state 回到 processing）后计数清零。esc 检测靠 Console.ReadKey 逐键读

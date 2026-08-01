@@ -2,7 +2,7 @@
  * Memory 管理器
  *
  * 管理自定义 Memory 的全局注册和查找
- * 仅使用 Kuka 路径：<project>/.kuka/memory
+ * 仅使用 Kuka 路径：<project>/.kukacode/memory
  */
 
 import * as fs from 'fs'
@@ -18,14 +18,14 @@ const MEMORY_FILE_NAME = 'MEMORY.md'
  * Memory 管理器类 - 单例模式
  */
 class MemoryManager {
-  private kukaProjectMemoryDir: string    // <project>/.kuka/memory
+  private kukaProjectMemoryDir: string    // <project>/.kukacode/memory
 
   private memoryInfoCache: MemoryConfig | null | undefined = undefined
   private loadingPromise: Promise<MemoryConfig | null> | null = null
 
   constructor() {
     const cwd = readInitialCwd()
-    this.kukaProjectMemoryDir = path.join(cwd, '.kuka', 'memory')
+    this.kukaProjectMemoryDir = path.join(cwd, '.kukacode', 'memory')
 
     // 后台静默加载 memory 信息
     this.loadingPromise = this.loadAndCacheMemory()

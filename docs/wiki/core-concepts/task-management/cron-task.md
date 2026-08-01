@@ -42,7 +42,7 @@ interface CronTask {
 }
 ```
 
-持久化文件（`.kuka/scheduled_tasks.json`）只落盘核心字段（`id / schedule / task / repeat / createdAt / lastFiredAt`），运行时字段（`nextFireAt`、`describeCronExpression`、`activatedAt` 等）在加载时重新计算。
+持久化文件（`.kukacode/scheduled_tasks.json`）只落盘核心字段（`id / schedule / task / repeat / createdAt / lastFiredAt`），运行时字段（`nextFireAt`、`describeCronExpression`、`activatedAt` 等）在加载时重新计算。
 
 ## 关键参数
 
@@ -51,7 +51,7 @@ interface CronTask {
 | `MAX_TASKS` | 20 | 全局定时任务上限，超出时 `createTask` 抛错 |
 | `TICK_INTERVAL` | 60_000（60s） | 扫描间隔，与 cron 最小粒度一致 |
 | `RECURRING_EXPIRE_MS` | 10 天 | 循环任务在本轮调度中持续 10 天后自动停调度（`status=false`），不删持久化文件，下次启动重新计 |
-| `CRON_TASKS_FILE` | `.kuka/scheduled_tasks.json` | 持久化文件路径 |
+| `CRON_TASKS_FILE` | `.kukacode/scheduled_tasks.json` | 持久化文件路径 |
 
 ## 调度循环（tick）
 

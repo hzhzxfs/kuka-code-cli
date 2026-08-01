@@ -169,7 +169,7 @@
           </execution>
           <execution>
             <!-- sidecar 随 SDK 分发：桥的自包含产物内嵌进 jar（kuka-sidecar/），
-                 SidecarManager.extractBundledSidecar 运行时释放到 ~/.kuka，
+                 SidecarManager.extractBundledSidecar 运行时释放到 ~/.kukacode，
                  「SDK 版本 = 桥版本 = core 版本」一次锁定 -->
             <id>embed-sidecar</id>
             <phase>generate-resources</phase>

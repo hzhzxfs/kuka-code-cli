@@ -6,7 +6,7 @@ pip install kuka-code
     python cli.py /path/to/project           # 指定项目目录（必填），新建会话
     python cli.py /path/to/project <会话id>   # 指定目录 + 加载历史会话
 
-模型自动读取 ~/.kuka/model.conf（见 README），代码里无需配置模型。
+模型自动读取 ~/.kukacode/model.conf（见 README），代码里无需配置模型。
 
 与 TS 版 cli.ts 的差异：不支持 esc 单键中断，统一用 Ctrl+C：第一次中断会话，
 第二次退出。行编辑（回显/退格）由 readline 接管，在后台线程跑 input()。

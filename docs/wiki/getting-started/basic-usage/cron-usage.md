@@ -14,7 +14,7 @@ Kuka Core 内置定时任务（Cron）系统，支持周期性任务和一次性
 | `persist` | 存储位置 | 生命周期 |
 |-----------|---------|---------|
 | `false`（默认） | 仅内存 | 创建它的会话关闭时清除 |
-| `true` | `.kuka/scheduled_tasks.json` | 跨会话保留，下次启动自动恢复 |
+| `true` | `.kukacode/scheduled_tasks.json` | 跨会话保留，下次启动自动恢复 |
 
 > **使用建议**：只有用户明确要求"永久保留"、"每天都跑"时才使用 `persist: true`；临时提醒保持默认即可。
 
@@ -94,7 +94,7 @@ Kuka Core 内置定时任务（Cron）系统，支持周期性任务和一次性
 
 ### del_cron — 删除定时任务
 
-传入任务 ID 即可删除。持久化任务会从 `.kuka/scheduled_tasks.json` 中移除。
+传入任务 ID 即可删除。持久化任务会从 `.kukacode/scheduled_tasks.json` 中移除。
 
 ## 用户操作 API
 

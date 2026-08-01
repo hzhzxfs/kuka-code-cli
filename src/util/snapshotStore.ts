@@ -2,7 +2,7 @@
  * Fork 快照存储层（纯文件 IO，不依赖任何 manager，避免循环依赖）
  *
  * 目录布局：
- *   ~/.kuka/snapshots/<project>/
+ *   ~/.kukacode/snapshots/<project>/
  *   ├── blobs/<sha256>            # 文件改动前的原始字节（内容寻址，跨会话去重）
  *   └── <sessionId>.editlog.json  # 每会话的 EditLog
  */

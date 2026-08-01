@@ -15,7 +15,7 @@ example/
 
 ## 安装与运行
 
-模型配置 `~/.kuka/model.conf`（各语言 kuka-code 自动读取，格式见 [demo/README.md](demo/README.md)）。
+模型配置 `~/.kukacode/model.conf`（各语言 kuka-code 自动读取，格式见 [demo/README.md](demo/README.md)）。
 
 **Node.js / TypeScript**
 

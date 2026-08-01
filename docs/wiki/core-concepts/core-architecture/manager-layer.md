@@ -4,12 +4,12 @@
 
 | 管理器 | 单例访问 | 持久化路径 | 主要职责 |
 |--------|---------|-----------|---------|
-| StateManager | `getStateManager()` | `~/.kuka/history/<project>/` | `sessionId -> SessionRuntime` 注册表；会话内再按 `agentId` 隔离状态 |
-| ConfManager | `getConfManager()` | `~/.kuka/projects.conf` | 核心配置、按工作目录隔离的项目配置 |
-| ModelManager | `getModelManager()` | `~/.kuka/model.conf` | 模型配置、main / quick 双指针 |
-| PermissionManager | 函数式 API | `~/.kuka/projects.conf` 中的 `allowedTools` | 工具执行权限检查与会话级权限请求 |
+| StateManager | `getStateManager()` | `~/.kukacode/history/<project>/` | `sessionId -> SessionRuntime` 注册表；会话内再按 `agentId` 隔离状态 |
+| ConfManager | `getConfManager()` | `~/.kukacode/projects.conf` | 核心配置、按工作目录隔离的项目配置 |
+| ModelManager | `getModelManager()` | `~/.kukacode/model.conf` | 模型配置、main / quick 双指针 |
+| PermissionManager | 函数式 API | `~/.kukacode/projects.conf` 中的 `allowedTools` | 工具执行权限检查与会话级权限请求 |
 | TaskManager | `getTaskManager()` | 任务记录不持久化；输出落盘到 `os.tmpdir()/kuka-tasks/<taskId>.output` | RunShell / SubAgent 后台任务，按会话限流、过滤、通知 |
-| CronManager | `getCronManager()` | 项目 `.kuka/scheduled_tasks.json`（仅 `persist=true`）；禁用状态在 `.kuka/settings.json` | 定时任务创建、执行、持久化，触发时投递到目标会话 |
+| CronManager | `getCronManager()` | 项目 `.kukacode/scheduled_tasks.json`（仅 `persist=true`）；禁用状态在 `.kukacode/settings.json` | 定时任务创建、执行、持久化，触发时投递到目标会话 |
 
 ## StateManager
 
@@ -107,7 +107,7 @@ runtime.getSystemPromptContent()
 
 **职责**：配置文件的读写与管理。内部类名为 `ConfigManager`，通过 `getConfManager()` 获取全局单例。
 
-**持久化路径**：`~/.kuka/projects.conf`
+**持久化路径**：`~/.kukacode/projects.conf`
 
 ### 管理的配置
 
@@ -145,7 +145,7 @@ confManager.saveUserInputToHistory(input)
 
 **职责**：LLM 模型配置的持久化管理。通过 `getModelManager()` 获取全局单例。
 
-**持久化路径**：`~/.kuka/model.conf`
+**持久化路径**：`~/.kukacode/model.conf`
 
 ```javascript
 {
@@ -227,7 +227,7 @@ modelManager.getModelData()
 
 **职责**：定时任务（Cron 表达式）的创建、调度、持久化与生命周期管理。通过 `getCronManager()` 获取全局单例。
 
-**持久化路径**：项目目录 `.kuka/scheduled_tasks.json`（仅 `persist=true` 的任务）；禁用状态写入 `.kuka/settings.json` 的 `disabledCronTasks`
+**持久化路径**：项目目录 `.kukacode/scheduled_tasks.json`（仅 `persist=true` 的任务）；禁用状态写入 `.kukacode/settings.json` 的 `disabledCronTasks`
 
 ### 关键参数
 

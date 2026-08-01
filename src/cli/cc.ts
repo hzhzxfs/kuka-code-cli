@@ -144,7 +144,7 @@ ${c.bold('cc switch — configure an LLM')}
 ${c.bold('Notes')}
   • Runs with ${c.green('Bypass')} permission by default: every tool call is allowed and no
     permission prompt is shown — it executes end-to-end without asking the user.
-  • Configuration lives in ${c.cyan('~/.kuka')} (model.conf, history, skills, mcp, ...).
+  • Configuration lives in ${c.cyan('~/.kukacode')} (model.conf, history, skills, mcp, ...).
   • Each session prints a ${c.cyan('8-hex session ID')} on start and exit — use
     ${c.cyan('cc --resume <id>')} (or ${c.cyan('cc resume <id>')}) to continue that conversation.
   • ${c.cyan('cc sessions')} lists every saved session for the current directory.
@@ -559,12 +559,12 @@ async function cmdMcp(workingDir: string): Promise<void> {
 }
 
 async function cmdConfig(workingDir: string): Promise<void> {
-  const { getKukaRootDir } = await import('../util/savePath');
+  const { getKukacodeRootDir } = await import('../util/savePath');
   await withCore(workingDir, async (core) => {
     const data = await core.getModelData();
     console.log(c.bold('Kuka Code 配置'));
     console.log('  版本:        ' + getVersion());
-    console.log('  配置根目录:  ' + c.cyan(getKukaRootDir()));
+    console.log('  配置根目录:  ' + c.cyan(getKukacodeRootDir()));
     console.log('  工作目录:    ' + c.cyan(workingDir));
     console.log('  当前模型:    ' + c.green(data.modelName || '(未配置)'));
     console.log('  权限模式:    ' + c.green('Bypass (默认，跳过所有权限检查)'));

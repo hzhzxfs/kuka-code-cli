@@ -13,7 +13,7 @@ import * as fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import * as path from 'path'
 import { logDebug, logError, logInfo, logWarn } from '../../util/log'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { parseFile } from '../../util/formatter'
 import { getPluginsManager } from '../plugins/pluginsManager'
@@ -24,8 +24,8 @@ import { CommandConfig } from '../../types/command'
  * Commands 管理器类 - 单例模式
  */
 class CommandsManager {
-  private kukaUserCommandsDir: string     // ~/.kuka/commands
-  private kukaProjectCommandsDir: string  // <project>/.kuka/commands
+  private kukaUserCommandsDir: string     // ~/.kukacode/commands
+  private kukaProjectCommandsDir: string  // <project>/.kukacode/commands
 
   private commandConfigs: Map<string, CommandConfig> = new Map()
   // Commands 信息缓存
@@ -34,11 +34,11 @@ class CommandsManager {
   private loadingPromise: Promise<CommandConfig[]> | null = null
 
   constructor() {
-    const kukaRootDir = getKukaRootDir()
+    const kukaRootDir = getKukacodeRootDir()
     this.kukaUserCommandsDir = path.join(kukaRootDir, 'commands')
 
     const cwd = readInitialCwd()
-    this.kukaProjectCommandsDir = path.join(cwd, '.kuka', 'commands')
+    this.kukaProjectCommandsDir = path.join(cwd, '.kukacode', 'commands')
 
     // 后台静默加载 commands 信息
     this.loadingPromise = this.loadAndCacheCommands()

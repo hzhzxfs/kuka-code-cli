@@ -77,7 +77,7 @@ session.respondToToolPermission({ toolId, toolName, selected: 'agree' });
 
 ### 6. 进阶：TypeScript 示例工程（demo）
 
-`example/demo` 是一个最小化的 TypeScript 工程，演示 `kuka-code` 的两种典型用法。它的模型配置不写在代码里，而是启动时自动读取 `~/.kuka/model.conf`（首次使用需先创建该文件，格式见 [demo/README](https://github.com/midea-ai/kuka-code-core/blob/main/example/demo/README.md)）。
+`example/demo` 是一个最小化的 TypeScript 工程，演示 `kuka-code` 的两种典型用法。它的模型配置不写在代码里，而是启动时自动读取 `~/.kukacode/model.conf`（首次使用需先创建该文件，格式见 [demo/README](https://github.com/midea-ai/kuka-code-core/blob/main/example/demo/README.md)）。
 
 ```bash
 cd example/demo

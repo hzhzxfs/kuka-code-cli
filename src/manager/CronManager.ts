@@ -13,7 +13,7 @@ import { getEventBus } from '../events/EventSystem'
 import { logInfo, logWarn } from '../util/log'
 import { SessionNotifyRegistry, NotifyCallback } from '../util/notifyRegistry'
 
-export const CRON_TASKS_FILE = '.kuka/scheduled_tasks.json'
+export const CRON_TASKS_FILE = '.kukacode/scheduled_tasks.json'
 
 export class CronManager {
   private tasks = new Map<string, CronTask>()
@@ -23,8 +23,8 @@ export class CronManager {
   private loadingPromise: Promise<void> | null = null
   private loaded = false
 
-  private tasksFilePath: string      // .kuka/scheduled_tasks.json
-  private settingsFilePath: string   // .kuka/settings.json
+  private tasksFilePath: string      // .kukacode/scheduled_tasks.json
+  private settingsFilePath: string   // .kukacode/settings.json
 
   static MAX_TASKS = 20
   static TICK_INTERVAL = 60_000 // 60秒，与 cron 最小粒度一致
@@ -32,7 +32,7 @@ export class CronManager {
 
   constructor() {
     const workingDir = getConfManager().getCoreConfig()?.workingDir || process.cwd()
-    const kukaDir = path.join(workingDir, '.kuka')
+    const kukaDir = path.join(workingDir, '.kukacode')
     this.tasksFilePath = path.join(workingDir, CRON_TASKS_FILE)
     this.settingsFilePath = path.join(kukaDir, 'settings.json')
 

@@ -9,7 +9,7 @@ import * as fs from 'fs'
 import { promises as fsPromises } from 'fs'
 import * as path from 'path'
 import { logDebug, logError, logInfo } from '../../util/log'
-import { getKukaRootDir } from '../../util/savePath'
+import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { RuleConfig } from '../../types/rule'
 
@@ -19,14 +19,14 @@ const AGENTS_FILE_NAME = 'AGENTS.md'
  * Rule 管理器类 - 单例模式
  */
 class RuleManager {
-  private kukaUserRuleFile: string     // ~/.kuka/AGENTS.md
+  private kukaUserRuleFile: string     // ~/.kukacode/AGENTS.md
   private kukaProjectRuleFile: string  // <project>/AGENTS.md
 
   private ruleInfoCache: RuleConfig | null | undefined = undefined
   private loadingPromise: Promise<RuleConfig | null> | null = null
 
   constructor() {
-    const kukaRootDir = getKukaRootDir()
+    const kukaRootDir = getKukacodeRootDir()
     this.kukaUserRuleFile = path.join(kukaRootDir, AGENTS_FILE_NAME)
 
     const cwd = readInitialCwd()

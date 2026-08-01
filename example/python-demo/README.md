@@ -2,8 +2,8 @@
 
 ## 前置条件
 
-- Python 3.10+；Node ≥18（SDK 本地优先探测，探测不到自动下载到 `~/.kuka/node`）
-- 模型配置 `~/.kuka/model.conf`（kuka-code 自动读取，demo 代码不涉及模型配置；格式见 [`模型配置`](https://midea-ai.github.io/kuka-code-core/#/wiki/getting-started/basic-usage/add-new-model?id=%E6%8C%81%E4%B9%85%E5%8C%96)）
+- Python 3.10+；Node ≥18（SDK 本地优先探测，探测不到自动下载到 `~/.kukacode/node`）
+- 模型配置 `~/.kukacode/model.conf`（kuka-code 自动读取，demo 代码不涉及模型配置；格式见 [`模型配置`](https://midea-ai.github.io/kuka-code-core/#/wiki/getting-started/basic-usage/add-new-model?id=%E6%8C%81%E4%B9%85%E5%8C%96)）
 
 ## 安装 kuka-code
 

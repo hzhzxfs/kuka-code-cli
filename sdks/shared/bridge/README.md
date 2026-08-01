@@ -163,7 +163,7 @@ npm start
 ```
 
 > 产物形态与 JetBrains 插件 sidecar 一致：`dist/server.js`（含 kuka-code，`@vscode/ripgrep` 被 external，
-> rg 由桥进程启动时自行供应：PATH 探测 → `~/.kuka/rg` 缓存 → 按需下载，见 `src/rg.ts`）+ 同级 `kuka.proto`。`npm run build:tsc` 保留 tsc 多文件构建，
+> rg 由桥进程启动时自行供应：PATH 探测 → `~/.kukacode/rg` 缓存 → 按需下载，见 `src/rg.ts`）+ 同级 `kuka.proto`。`npm run build:tsc` 保留 tsc 多文件构建，
 > `npm run typecheck` 只做类型检查。
 
 ## 环境变量

@@ -11,7 +11,7 @@ import { ToolPermissionRequestData, ToolPermissionResponse, ToolPermissionAutoDa
 import { checkAbortSignal } from '../types/errors'
 import { getFilePath } from '../util/file'
 import { isAbsolute, resolve, relative, dirname, join } from 'path'
-import { getKukaRootDir } from '../util/savePath'
+import { getKukacodeRootDir } from '../util/savePath'
 import { tmpdir } from 'os'
 import { normalizeCmpPath } from '../util/platform'
 import { getStateManager, MAIN_AGENT_ID } from './StateManager'
@@ -34,13 +34,13 @@ function isPathInsideRoot(filePath: string, root: string): boolean {
 // tmpdir() 已涵盖 $TMPDIR/$TEMP/$TMP；/var/folders 覆盖 macOS 临时/缓存区
 const TEMP_BASE_PATHS = [tmpdir(), '/tmp', '/var/tmp', '/var/folders']
 
-// KUKA_ROOT 下的受信内容子目录：全局 skill/命令/agent/插件均为用户自行安装的内容，读取静默放行。
-// 仅限这几个内容型目录；KUKA_ROOT 根下的 model.conf、history/ 等敏感文件仍需权限申请。
+// KUKACODE_ROOT 下的受信内容子目录：全局 skill/命令/agent/插件均为用户自行安装的内容，读取静默放行。
+// 仅限这几个内容型目录；KUKACODE_ROOT 根下的 model.conf、history/ 等敏感文件仍需权限申请。
 const TRUSTED_KUKA_SUBDIRS = ['skills', 'commands', 'agents', 'plugins']
 
 function isTrustedKukaFile(filePath: string): boolean {
   const abs = isAbsolute(filePath) ? filePath : resolve(readInitialCwd(), filePath)
-  const kukaRoot = getKukaRootDir()
+  const kukaRoot = getKukacodeRootDir()
   return TRUSTED_KUKA_SUBDIRS.some(sub => isPathInsideRoot(abs, join(kukaRoot, sub)))
 }
 
@@ -170,7 +170,7 @@ export const checkToolPermission = async (
     }
 
     const filePath = getFilePath(input)
-    // 项目内、临时文件或 KUKA_ROOT 受信内容目录：直接放行，保持静默
+    // 项目内、临时文件或 KUKACODE_ROOT 受信内容目录：直接放行，保持静默
     if (!filePath || isPathInsideRoot(filePath, readInitialCwd()) || isTempFile(filePath) || isTrustedKukaFile(filePath)) {
       return { result: true }
     }

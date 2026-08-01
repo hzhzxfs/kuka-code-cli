@@ -35,19 +35,19 @@ export interface ProjectDesignState {
 }
 
 export interface DesignModePaths {
-  /** Project-scoped root for all design artifacts: <cwd>/.kuka/design/ */
+  /** Project-scoped root for all design artifacts: <cwd>/.kukacode/design/ */
   projectDesignRoot: string
-  /** Where the chosen skill is copied: <cwd>/.kuka/design/skills/ */
+  /** Where the chosen skill is copied: <cwd>/.kukacode/design/skills/ */
   projectSkillsDir: string
-  /** Design system decision document: <cwd>/.kuka/design/DESIGN.md */
+  /** Design system decision document: <cwd>/.kukacode/design/DESIGN.md */
   projectDesignDoc: string
-  /** Generated HTML/CSS/JS lives here: <cwd>/.kuka/design/code/ */
+  /** Generated HTML/CSS/JS lives here: <cwd>/.kukacode/design/code/ */
   projectCodeDir: string
-  /** Screenshots of rendered HTML: <cwd>/.kuka/design/screen/ */
+  /** Screenshots of rendered HTML: <cwd>/.kukacode/design/screen/ */
   projectScreenDir: string
-  /** Global skills library: ~/.kuka/designs/skills */
+  /** Global skills library: ~/.kukacode/designs/skills */
   globalSkillsRoot: string
-  /** Global design systems library: ~/.kuka/designs/design-systems */
+  /** Global design systems library: ~/.kukacode/designs/design-systems */
   globalDesignSystemsRoot: string
   /** Pre-loaded summaries of every global design skill (folder name + description) */
   designSkills: DesignSkillSummary[]

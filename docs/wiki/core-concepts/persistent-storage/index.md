@@ -1,13 +1,13 @@
 # 数据持久化
 
-Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kuka/` 下，以及项目根目录的 `.kuka/` 下。
+Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kukacode/` 下，以及项目根目录的 `.kukacode/` 下。
 
 ## 目录结构
 
-### 用户主目录 `~/.kuka/`
+### 用户主目录 `~/.kukacode/`
 
 ```
-~/.kuka/                          # 全局配置目录
+~/.kukacode/                          # 全局配置目录
 ├── model.conf                    # 模型配置
 ├── projects.conf                 # 项目配置（按工作目录分组）
 ├── .mcp.json                     # 全局 MCP 服务器配置
@@ -38,10 +38,10 @@ Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kuka/` 下，�
     └── cache/                    # 插件下载缓存
 ```
 
-### 项目根目录 `.kuka/`
+### 项目根目录 `.kukacode/`
 
 ```
-.kuka/                            # 项目配置目录（项目根目录下）
+.kukacode/                            # 项目配置目录（项目根目录下）
 ├── .mcp.json                     # 项目级 MCP 服务器配置
 ├── settings.json                 # 项目设置（MCP 禁用/工具白名单等）
 ├── skills/
@@ -59,7 +59,7 @@ Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kuka/` 下，�
 
 ## 各文件详解
 
-### 项目配置 `~/.kuka/projects.conf`
+### 项目配置 `~/.kukacode/projects.conf`
 
 存储项目配置，按工作目录路径分组：
 
@@ -90,7 +90,7 @@ Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kuka/` 下，�
 - 每个项目最多保留 **30 条**输入历史（`PROJECT_HISTORY_LENGTH_LIMIT`）
 - 全局最多保留 **20 个**项目，超过时删除 `lastEditTime` 最旧的（`PROJECT_LENGTH_LIMIT`）
 
-### 模型配置 `~/.kuka/model.conf`
+### 模型配置 `~/.kukacode/model.conf`
 
 存储所有已配置的模型和指针：
 
@@ -125,7 +125,7 @@ Kuka Core 的所有持久化数据存储在用户主目录的 `~/.kuka/` 下，�
 }
 ```
 
-### MCP 配置 `~/.kuka/.mcp.json` 和 `.kuka/.mcp.json`
+### MCP 配置 `~/.kukacode/.mcp.json` 和 `.kukacode/.mcp.json`
 
 MCP 服务器配置（全局和项目级格式相同），支持 `.mcp.json` 和 `mcp.json` 两种文件名，支持 `mcpServers` 包裹格式或直接对象格式：
 
@@ -146,7 +146,7 @@ MCP 服务器配置（全局和项目级格式相同），支持 `.mcp.json` 和
 
 MCP 加载优先级：**插件 MCP < 用户级 < 项目级**，项目级配置可以覆盖用户级同名服务。
 
-### 项目设置 `.kuka/settings.json`
+### 项目设置 `.kukacode/settings.json`
 
 存储项目级 MCP 管理设置：
 
@@ -162,7 +162,7 @@ MCP 加载优先级：**插件 MCP < 用户级 < 项目级**，项目级配置�
 - `disabledMcpServers`：已禁用的 MCP 服务名列表
 - `enabledMcpServerUseTools`：按服务名指定的可用工具白名单
 
-### 会话历史`~/.kuka/history/[project-dir]/[date]_[sessionId].json`
+### 会话历史`~/.kukacode/history/[project-dir]/[date]_[sessionId].json`
 
 会话历史文件，按项目目录分组存储，由 `saveHistory()` 自动保存。项目目录名由工作目录路径转换而来（路径分隔符替换为 `-`，如 `/Users/dev/my-project` → `-Users-dev-my-project`）：
 
@@ -223,7 +223,7 @@ MCP 加载优先级：**插件 MCP < 用户级 < 项目级**，项目级配置�
 - 全局最多保留 **20 个**项目目录，超过时删除最久未活跃的（`PROJECT_LENGTH_LIMIT`）
 - 清理每 **1 小时**最多触发一次（`HISTORY_CLEANUP_INTERVAL`）
 
-### 系统日志 `~/.kuka/logs/[YYYY-MM-DD].log`
+### 系统日志 `~/.kukacode/logs/[YYYY-MM-DD].log`
 
 服务运行日志，按天分割，记录 debug/info/warn/error 级别消息。格式：
 
@@ -233,7 +233,7 @@ MCP 加载优先级：**插件 MCP < 用户级 < 项目级**，项目级配置�
 
 **自动清理**：最多保留最近 **7 个**日志文件（`SERVICE_LOG_FILES_RETAIN_COUNT`）。
 
-### LLM日志 `~/.kuka/llm_logs/[YYYY-MM-DD]_[sessionId].log`
+### LLM日志 `~/.kukacode/llm_logs/[YYYY-MM-DD]_[sessionId].log`
 
 LLM 请求和响应的原始日志，按会话分文件存储。格式：
 
@@ -243,7 +243,7 @@ LLM 请求和响应的原始日志，按会话分文件存储。格式：
 
 **自动清理**：最多保留最近 **10 个**日志文件（`LLM_LOG_FILES_RETAIN_COUNT`），超出的文件在删除前会被归档到 `tracks/`。
 
-### LLM 日志归档 `~/.kuka/tracks/[YYYY-MM-DD].log`
+### LLM 日志归档 `~/.kukacode/tracks/[YYYY-MM-DD].log`
 
 LLM 日志归档文件，从原始日志中提取 **messages 最长的一次请求及其后续响应**，过滤掉 system 消息后追加存储。格式：
 
@@ -254,7 +254,7 @@ LLM 日志归档文件，从原始日志中提取 **messages 最长的一次请�
 
 **自动清理**：最多保留最近 **30 个**归档文件（`TRACKS_FILES_RETAIN_COUNT`）。
 
-### 事件日志 `~/.kuka/event/[YYYY-MM-DD]_[sessionId].log`
+### 事件日志 `~/.kukacode/event/[YYYY-MM-DD]_[sessionId].log`
 
 事件日志，记录系统内部事件流。格式：
 
@@ -264,13 +264,13 @@ LLM 日志归档文件，从原始日志中提取 **messages 最长的一次请�
 
 **自动清理**：最多保留最近 **10 个**日志文件（`EVENT_LOG_FILES_RETAIN_COUNT`）。
 
-### LLM 响应缓存 `~/.kuka/cache/llm-cache.json`
+### LLM 响应缓存 `~/.kukacode/cache/llm-cache.json`
 
 LLM 响应缓存文件，由 `enableLLMCache` 配置控制是否启用。
 
-### 规则文件 `~/.kuka/AGENTS.md` 和 `<project>/AGENTS.md`
+### 规则文件 `~/.kukacode/AGENTS.md` 和 `<project>/AGENTS.md`
 
-Agent 规则/提示词文件，以 Markdown 格式存储。项目级文件（`<project>/AGENTS.md`）优先于用户级文件（`~/.kuka/AGENTS.md`）。
+Agent 规则/提示词文件，以 Markdown 格式存储。项目级文件（`<project>/AGENTS.md`）优先于用户级文件（`~/.kukacode/AGENTS.md`）。
 
 ## 优先级规则
 
@@ -278,13 +278,13 @@ Agent 规则/提示词文件，以 Markdown 格式存储。项目级文件（`<p
 
 | 资源类型 | 用户级 | 项目级 | 优先级 |
 |---------|--------|--------|--------|
-| Skill | `~/.kuka/skills/` | `.kuka/skills/` | 项目级 > 用户级 |
-| Agent | `~/.kuka/agents/` | `.kuka/agents/` | 项目级 > 用户级 |
-| Rules | `~/.kuka/AGENTS.md` | `<project>/AGENTS.md` | 项目级 > 用户级 |
-| MCP 配置 | `~/.kuka/.mcp.json` | `.kuka/.mcp.json` | 项目级覆盖用户级同名服务 |
+| Skill | `~/.kukacode/skills/` | `.kukacode/skills/` | 项目级 > 用户级 |
+| Agent | `~/.kukacode/agents/` | `.kukacode/agents/` | 项目级 > 用户级 |
+| Rules | `~/.kukacode/AGENTS.md` | `<project>/AGENTS.md` | 项目级 > 用户级 |
+| MCP 配置 | `~/.kukacode/.mcp.json` | `.kukacode/.mcp.json` | 项目级覆盖用户级同名服务 |
 
 ## 备份建议
 
-- **API Keys**：`~/.kuka/model.conf` 中包含 API Key，建议设置文件权限为 `600`
-- **Skills 和 Agents**：建议纳入项目 Git 版本控制（`.kuka/` 目录）
-- **会话历史**：`~/.kuka/history/` 可选择性备份，文件较大时可定期清理
+- **API Keys**：`~/.kukacode/model.conf` 中包含 API Key，建议设置文件权限为 `600`
+- **Skills 和 Agents**：建议纳入项目 Git 版本控制（`.kukacode/` 目录）
+- **会话历史**：`~/.kukacode/history/` 可选择性备份，文件较大时可定期清理
