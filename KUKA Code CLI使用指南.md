@@ -51,7 +51,7 @@
 ## 二、环境配置
 
 ```bash
-cd "C:\work\kuka agent\kuka-code\kuka-code-core-main"
+cd "C:\work\kuka-code-cli"
 npm install          # 装依赖(只需一次;本沙箱 node_modules 已就绪,新机器要跑)
 ```
 
@@ -75,7 +75,7 @@ node bin/cc.js              # 进入交互式对话
 标准做法(普通 Windows + 官方 Node 一般 OK):
 
 ```bash
-cd "C:\work\kuka agent\kuka-code\kuka-code-core-main"
+cd "C:\work\kuka-code-cli"
 npm link
 ```
 
@@ -89,7 +89,7 @@ npm link
 
 ```cmd
 @echo off
-node "C:\work\kuka agent\kuka-code\kuka-code-core-main\bin\cc.js" %*
+node "C:\work\kuka-code-cli\bin\cc.js" %*
 ```
 
 同理建 `kuka.cmd` 指向同一个 js。这样 `cc/kuka` 在所有 cmd 窗口都能用,且不依赖 node 是受管版还是官方版。
