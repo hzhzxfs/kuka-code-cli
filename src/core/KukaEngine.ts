@@ -139,6 +139,14 @@ export class KukaEngine {
   }
 
   /**
+   * 返回主代理已加载的消息历史（含 resume 恢复的历史消息）。
+   * 供 CLI 在恢复会话时回显历史对话。
+   */
+  getLoadedMessages(): Message[] {
+    return this.runtime.forAgent(MAIN_AGENT_ID).getMessageHistory();
+  }
+
+  /**
    * 处理用户输入
    * 如果当前正在处理中，将输入加入队列等待
    */

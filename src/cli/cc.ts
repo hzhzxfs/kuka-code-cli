@@ -212,6 +212,58 @@ function printSessionEnd(sessionId: string): void {
   );
 }
 
+// 历史消息单条文本显示上限，超出则截断并提示（避免超大历史刷屏）
+const MAX_HISTORY_MSG_LEN = 2000;
+
+/** 从 user/assistant 消息内容中提取可读文本（忽略 tool_use / tool_result / thinking 等块） */
+function extractMessageText(content: any): string {
+  if (content == null) return '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((b) => {
+        if (b && (b.type === 'text' || b.type === 'input_text') && typeof b.text === 'string') return b.text;
+        return '';
+      })
+      .filter((s) => s.length > 0)
+      .join('\n');
+  }
+  return '';
+}
+
+/** 回显被恢复会话的历史对话（仅可读文本，跳过工具调用等合成块） */
+function printHistory(messages: any[]): void {
+  const turns = messages
+    .map((m) => {
+      if (m && m.type === 'user') return { role: 'user', text: extractMessageText(m.message?.content) };
+      if (m && m.type === 'assistant') return { role: 'assistant', text: extractMessageText(m.message?.content) };
+      return null;
+    })
+    .filter((t): t is { role: string; text: string } => t !== null && t.text.trim().length > 0);
+
+  console.log('');
+  if (turns.length === 0) {
+    console.log(c.gray('  (历史记录为空，将作为新会话开始)'));
+    return;
+  }
+  console.log(c.bold(c.gray(`  📜 历史对话回放（共 ${turns.length} 条消息）`)));
+  console.log(c.gray('  ' + '─'.repeat(46)));
+  for (const t of turns) {
+    if (t.role === 'user') {
+      console.log(c.blue('  👤 用户:'));
+    } else {
+      console.log(c.green('  🤖 Kuka:'));
+    }
+    const text =
+      t.text.length > MAX_HISTORY_MSG_LEN
+        ? t.text.slice(0, MAX_HISTORY_MSG_LEN) + c.gray(`\n  …(已截断，该条共 ${t.text.length} 字，完整内容见历史文件)`)
+        : t.text;
+    console.log('  ' + text.split('\n').join('\n  '));
+    console.log('');
+  }
+  console.log(c.gray('  ' + '─'.repeat(46)));
+}
+
 /** 列出当前工作目录下的历史会话（从磁盘读取） */
 async function cmdSessions(workingDir: string): Promise<void> {
   const dir = getProjectHistoryDir(workingDir);
@@ -309,6 +361,16 @@ async function cmdChat(opts: {
   // Belt-and-suspenders: ensure bypass is active.
   session.updatePermissionLevel(opts.permissionLevel);
   printSessionStart(session.sessionId, !!opts.resume);
+
+  // 恢复会话时回显历史消息，方便用户接续上下文
+  if (opts.resume) {
+    const historyMsgs = session.getMessageHistory();
+    if (historyMsgs.length > 0) {
+      printHistory(historyMsgs);
+    } else {
+      console.log(c.gray('  (未读取到历史消息，将作为新会话开始)'));
+    }
+  }
 
   // Permission auto-agree (only relevant if bypass is off).
   session.on('tool:permission:request', (data: { toolId: string; toolName: string }) => {

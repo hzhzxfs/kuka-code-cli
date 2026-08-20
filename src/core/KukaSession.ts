@@ -9,7 +9,7 @@ import { getTaskManager } from '../manager/TaskManager';
 import { ToolPermissionResponse, PickOptionResponseData, PlanExitResponseData } from '../events/types';
 import { TaskListItem } from '../types/task';
 import type { AgentMode, PermissionLevel } from '../types';
-import type { InputImageAttachment } from '../types/message';
+import type { InputImageAttachment, Message } from '../types/message';
 import { logInfo } from '../util/log';
 
 /**
@@ -60,6 +60,9 @@ export class KukaSession {
   // ==================== 会话交互 ====================
   processUserInput = (input: string, originalInput?: string, attachments?: InputImageAttachment[]): void =>
     this.engine.processUserInput(input, originalInput, false, attachments);
+
+  /** 获取当前会话已加载的消息历史（含 resume 恢复的历史消息），用于 CLI 回显 */
+  getMessageHistory = (): Message[] => this.engine.getLoadedMessages();
 
   interrupt = (): void => this.engine.interruptSession();
 
