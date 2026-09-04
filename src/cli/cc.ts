@@ -147,6 +147,8 @@ ${c.bold('Notes')}
   • Configuration lives in ${c.cyan('~/.kukacode')} (model.conf, history, skills, mcp, ...).
   • Each session prints a ${c.cyan('8-hex session ID')} on start and exit — use
     ${c.cyan('cc --resume <id>')} (or ${c.cyan('cc resume <id>')}) to continue that conversation.
+  • In chat: just type to send, ${c.cyan('exit')} to quit, ${c.cyan('Ctrl+C')} to interrupt the
+    current reply (twice, or while idle, to exit). The session ID is printed on Ctrl+C exit too.
   • ${c.cyan('cc sessions')} lists every saved session for the current directory.
 `);
 }
@@ -202,10 +204,10 @@ function printSessionStart(sessionId: string, resumed: boolean): void {
   }
 }
 
-function printSessionEnd(sessionId: string): void {
+function printSessionEnd(sessionId: string, interrupted = false): void {
   console.log('');
   console.log(
-    c.gray('  ✻ 会话已结束 · 会话 ID: ') +
+    c.gray(interrupted ? '  ✻ 会话已中断 · 会话 ID: ' : '  ✻ 会话已结束 · 会话 ID: ') +
       c.bold(c.cyan(sessionId)) +
       c.gray('  ·  恢复: ') +
       c.cyan('cc --resume ' + sessionId)
@@ -431,23 +433,53 @@ function prompt(rl: readline.Interface, question: string): Promise<string> {
 async function interactiveLoop(core: KukaCore, session: KukaSession): Promise<void> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout, prompt: '' });
   let interruptCount = 0;
+  let awaitingInput = false;
+  let exiting = false;
+
+  /** Ctrl+C 退出：先打印被中断的会话 ID，方便后续 cc --resume 恢复 */
+  const exitByInterrupt = (): void => {
+    if (exiting) {
+      process.exit(0);
+      return;
+    }
+    exiting = true;
+    printSessionEnd(session.sessionId, true);
+    rl.close();
+    core.closeSession(session.sessionId);
+    void core
+      .dispose()
+      .catch(() => undefined)
+      .then(() => process.exit(0));
+    // 兜底：dispose 卡住时也要退出
+    const t = setTimeout(() => process.exit(0), 2000);
+    t.unref();
+  };
 
   process.on('SIGINT', () => {
+    // 空闲等待输入时，一次 Ctrl+C 直接退出
+    if (awaitingInput) {
+      exitByInterrupt();
+      return;
+    }
     interruptCount++;
-    console.log('\n⚠️  中断会话...');
-    if (interruptCount === 1 && session) session.interrupt();
-    else {
-      rl.close();
-      process.exit(0);
+    if (interruptCount === 1 && session) {
+      console.log(c.yellow('\n⚠️  已中断本次回复') + c.gray('（再按一次 Ctrl+C 退出会话）'));
+      session.interrupt();
+    } else {
+      exitByInterrupt();
     }
   });
 
+  console.log(c.gray('  · 直接输入即发送 · exit 退出 · Ctrl+C 中断回复，连按两次退出会话'));
+
   await new Promise<void>((resolve, reject) => {
-    let awaitingInput = false;
+    // Ctrl+D（stdin 结束）也走正常退出流程
+    rl.on('close', () => resolve());
+
     const askAndSend = async (): Promise<void> => {
       if (awaitingInput) return;
       awaitingInput = true;
-      const input = (await prompt(rl, c.blue('\n👤 消息 (esc 中断, exit 退出): '))).trim();
+      const input = (await prompt(rl, c.cyan('\n👤 '))).trim();
       awaitingInput = false;
       if (input === 'exit' || input === 'quit') {
         resolve();
@@ -481,9 +513,16 @@ async function interactiveLoop(core: KukaCore, session: KukaSession): Promise<vo
 function runSinglePrompt(session: KukaSession, promptText: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     let settled = false;
+    // Ctrl+C 中断：打印会话 ID，方便 cc --resume 继续
+    const onSigint = () => {
+      printSessionEnd(session.sessionId, true);
+      process.exit(0);
+    };
+    process.on('SIGINT', onSigint);
     const finish = () => {
       if (settled) return;
       settled = true;
+      process.off('SIGINT', onSigint);
       resolve();
     };
     session.on('state:update', ({ state }: { state: string }) => {
@@ -491,8 +530,10 @@ function runSinglePrompt(session: KukaSession, promptText: string): Promise<void
     });
     session.once('session:error', (data: { message: string }) => {
       settled = true;
+      process.off('SIGINT', onSigint);
       reject(new Error(data.message));
     });
+
     process.stdout.write('\n' + c.green('🤖 Kuka: '));
     session.processUserInput(promptText);
     // Safety timeout in case the session never returns to idle.
