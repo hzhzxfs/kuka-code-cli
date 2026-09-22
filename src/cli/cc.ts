@@ -348,7 +348,10 @@ async function cmdChat(opts: {
     }
     const resolved = resolveHistoryFile(opts.resume, opts.workingDir);
     if (!resolved.exists) {
-      console.log(c.yellow(`  ⚠ 未找到会话 ${opts.resume} 的历史记录，将创建一个同名新会话。`));
+      console.error(c.red(`✗ 未找到会话 ${opts.resume} 的历史记录，无法恢复。`));
+      console.error(c.gray('  可通过 `cc sessions` 查看当前工作目录下可恢复的会话 ID。'));
+      await core.dispose();
+      process.exit(1);
     }
   }
 

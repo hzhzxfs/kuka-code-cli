@@ -36,6 +36,28 @@ export function resolveHistoryFile(sessionId: string, projectPath?: string): { p
   const datedPath = getHistoryFilePath(sessionId, projectPath, false);
   if (fs.existsSync(datedPath)) return { path: datedPath, noDate: false, exists: true };
 
+  // 历史文件使用「日期_会话id.json」命名，但日期是保存当天而非恢复当天。
+  // 因此不能直接用今天的日期去拼路径，必须扫描目录，找到任意日期前缀下匹配该会话 id 的文件。
+  const dir = projectPath ? getProjectHistoryDir(projectPath) : getHistoryDir();
+  const target = `_${sessionId.toLowerCase()}.json`;
+  if (fs.existsSync(dir)) {
+    let best: { path: string; mtime: number } | null = null;
+    for (const f of fs.readdirSync(dir)) {
+      if (!f.toLowerCase().endsWith(target)) continue;
+      // 仅接受形如 日期_会话id.json（排除恰好以相同后缀结尾的其他 id）
+      const m = f.match(/^(?:\d{4}-\d{2}-\d{2}_)?[0-9a-f]{8}\.json$/i);
+      if (!m) continue;
+      const fp = path.join(dir, f);
+      try {
+        const mtime = fs.statSync(fp).mtimeMs;
+        if (!best || mtime > best.mtime) best = { path: fp, mtime };
+      } catch {
+        // 跳过无法读取的文件
+      }
+    }
+    if (best) return { path: best.path, noDate: false, exists: true };
+  }
+
   return { path: datedPath, noDate: false, exists: false };
 }
 
@@ -199,14 +221,15 @@ export async function cleanupOldHistoryFiles(projectPath?: string): Promise<void
 /**
  * 保存历史消息和todos
  */
-export async function saveHistory(sessionId: string, messages: Message[], todos?: TodoItem[], projectPath?: string, readFileTimestamps?: Record<string, number>, todoTasks?: TodoTask[], noDate?: boolean): Promise<void> {
+export async function saveHistory(sessionId: string, messages: Message[], todos?: TodoItem[], projectPath?: string, readFileTimestamps?: Record<string, number>, todoTasks?: TodoTask[], noDate?: boolean, filePath?: string): Promise<void> {
   const historyDir = projectPath ? getProjectHistoryDir(projectPath) : getHistoryDir();
-  const historyPath = getHistoryFilePath(sessionId, projectPath, noDate);
+  const historyPath = filePath || getHistoryFilePath(sessionId, projectPath, noDate);
 
   try {
-    // 确保目录存在
-    if (!fs.existsSync(historyDir)) {
-      fs.mkdirSync(historyDir, { recursive: true });
+    // 确保目录存在（显式指定路径时，以路径所在目录为准）
+    const dirToEnsure = filePath ? path.dirname(filePath) : historyDir;
+    if (!fs.existsSync(dirToEnsure)) {
+      fs.mkdirSync(dirToEnsure, { recursive: true });
     }
 
     const historyData: HistoryData = {

@@ -93,11 +93,16 @@ export class KukaEngine {
     // 决定本会话历史文件命名格式：传入 ID 且无任何历史文件（不存在的会话ID）→ 无日期，
     // 沿用已存在文件的格式；不传 ID（随机 ID）→ 带日期。
     let historyNoDate = false;
+    let historyFilePath: string | null = null;
     if (historyId) {
       const resolved = resolveHistoryFile(historyId, workingDir);
+      // 找到历史文件则沿用其原路径（可能带旧日期前缀），复用而非新建；
+      // 未找到才是全新会话，无日期命名（会话id.json）。
       historyNoDate = resolved.exists ? resolved.noDate : true;
+      historyFilePath = resolved.exists ? resolved.path : null;
     }
     this.runtime.setHistoryNoDate(historyNoDate);
+    this.runtime.setHistoryFilePath(historyFilePath);
 
     const historyData = await loadHistory(historyId, workingDir);
 
