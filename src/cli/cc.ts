@@ -11,6 +11,7 @@
  *   cc mcp                     List configured MCP servers
  *   cc config                  Show current configuration
  *   cc sessions                List saved sessions for this directory
+ *   cc sessions -v             List with each session's latest user message
  *   cc resume <sessionId>      Resume a previous session (alias of --resume)
  *   cc version                 Show version
  *   cc help                    Show help
@@ -32,6 +33,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { getProjectHistoryDir } from '../util/savePath';
 import { resolveHistoryFile } from '../util/history';
+import { REMINDER_SYS_OPEN, REMINDER_SYS_CLOSE } from '../prompt/define';
 
 // ---------------------------------------------------------------------------
 // Small flag parser
@@ -113,6 +115,7 @@ ${c.bold('Usage')}
   ${c.cyan('cc')} mcp                     List configured MCP servers
   ${c.cyan('cc')} config                  Show current configuration
   ${c.cyan('cc')} sessions                List saved sessions for this directory
+  ${c.cyan('cc')} sessions -v             Same, plus the latest user message per session
   ${c.cyan('cc')} resume <sessionId>      Resume a previous session (alias of --resume)
   ${c.cyan('cc')} version                 Show version
   ${c.cyan('cc')} help                    Show this help
@@ -181,16 +184,114 @@ function isValidSessionId(id: string): boolean {
   return /^[0-9a-f]{8}$/i.test(id);
 }
 
-/** 从消息历史中提取第一条用户文本，作为会话预览 */
+/** 会话预览的显示宽度（CJK 等全角字符按 2 列计） */
+function displayWidth(text: string): number {
+  let width = 0;
+  for (const ch of text) {
+    const cp = ch.codePointAt(0)!;
+    const wide =
+      (cp >= 0x1100 && cp <= 0x115f) ||
+      (cp >= 0x2e80 && cp <= 0xa4cf) ||
+      (cp >= 0xac00 && cp <= 0xd7a3) ||
+      (cp >= 0xf900 && cp <= 0xfaff) ||
+      (cp >= 0xfe30 && cp <= 0xfe6f) ||
+      (cp >= 0xff00 && cp <= 0xff60) ||
+      (cp >= 0xffe0 && cp <= 0xffe6) ||
+      (cp >= 0x1f300 && cp <= 0x1faff);
+    width += wide ? 2 : 1;
+  }
+  return width;
+}
+
+/** 按终端显示宽度截断，超出时追加省略号 */
+function clipToWidth(text: string, maxWidth: number): string {
+  if (displayWidth(text) <= maxWidth) return text;
+  let out = '';
+  let width = 0;
+  for (const ch of text) {
+    const w = displayWidth(ch);
+    if (width + w > Math.max(1, maxWidth - 1)) break;
+    out += ch;
+    width += w;
+  }
+  return out + '…';
+}
+
+/** 剥掉 <reminder-sys>…</reminder-sys> 注入块（skills / rules / 文件引用 / 环境信息等噪声），保留原有换行 */
+function stripReminderBlocks(raw: string): string {
+  const re = new RegExp(`${REMINDER_SYS_OPEN}[\\s\\S]*?${REMINDER_SYS_CLOSE}`, 'g');
+  return raw.replace(re, ' ');
+}
+
+/** 把一段消息文本压成单行预览：剥掉注入块后去掉控制字符与多余空白 */
+function cleanPreviewText(raw: string): string {
+  return stripReminderBlocks(raw)
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** 取一条消息里的全部 text 块文本 */
+function messageTextBlocks(m: any): string[] {
+  const content = m?.message?.content;
+  if (typeof content === 'string') return [content];
+  if (!Array.isArray(content)) return [];
+  const out: string[] = [];
+  for (const b of content) {
+    if (b && b.type === 'text' && typeof b.text === 'string') out.push(b.text);
+  }
+  return out;
+}
+
+/** 含 tool_result 的 user 消息是工具结果载体（合成消息），不是真实用户输入 */
+function isToolResultMessage(m: any): boolean {
+  const content = m?.message?.content;
+  return Array.isArray(content) && content.some((b: any) => b && b.type === 'tool_result');
+}
+
+/** 上下文压缩后写入的提示消息同样是合成内容，不能当作会话标题 */
+function isInjectedNotice(text: string): boolean {
+  return text.startsWith('[Context Compression Notice]');
+}
+
+/**
+ * 从消息历史中提取第一条真实用户输入，作为会话预览。
+ * 首条用户消息里通常先塞着 skills / rules 提醒，真正的提问在后面的 text 块，
+ * 因此逐块剥离注入内容后再取第一个非空结果。
+ */
 function firstUserText(messages: any[]): string {
   for (const m of messages || []) {
-    if (m && m.type === 'user' && m.message && m.message.content) {
-      const content = m.message.content;
-      if (typeof content === 'string') return content;
-      if (Array.isArray(content)) {
-        const t = content.find((b: any) => b && b.type === 'text' && typeof b.text === 'string');
-        if (t) return t.text;
-      }
+    if (!m || m.type !== 'user' || isToolResultMessage(m)) continue;
+    for (const block of messageTextBlocks(m)) {
+      const text = cleanPreviewText(block);
+      if (text && !isInjectedNotice(text)) return text;
+    }
+  }
+  return '';
+}
+
+/** 最后一条真实用户输入，用于看出这个会话最近在做什么 */
+function lastUserText(messages: any[]): string {
+  const list = messages || [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const m = list[i];
+    if (!m || m.type !== 'user' || isToolResultMessage(m)) continue;
+    const blocks = messageTextBlocks(m);
+    for (let j = blocks.length - 1; j >= 0; j--) {
+      const text = cleanPreviewText(blocks[j]!);
+      if (text && !isInjectedNotice(text)) return text;
+    }
+  }
+  return '';
+}
+
+/** 没有用户文本时的兜底：第一条有内容的助手回复 */
+function firstAssistantText(messages: any[]): string {
+  for (const m of messages || []) {
+    if (!m || m.type !== 'assistant') continue;
+    for (const block of messageTextBlocks(m)) {
+      const text = cleanPreviewText(block);
+      if (text) return text;
     }
   }
   return '';
@@ -220,11 +321,13 @@ const MAX_HISTORY_MSG_LEN = 2000;
 /** 从 user/assistant 消息内容中提取可读文本（忽略 tool_use / tool_result / thinking 等块） */
 function extractMessageText(content: any): string {
   if (content == null) return '';
-  if (typeof content === 'string') return content;
+  if (typeof content === 'string') return stripReminderBlocks(content).trim();
   if (Array.isArray(content)) {
     return content
       .map((b) => {
-        if (b && (b.type === 'text' || b.type === 'input_text') && typeof b.text === 'string') return b.text;
+        if (b && (b.type === 'text' || b.type === 'input_text') && typeof b.text === 'string') {
+          return stripReminderBlocks(b.text).trim();
+        }
         return '';
       })
       .filter((s) => s.length > 0)
@@ -237,7 +340,11 @@ function extractMessageText(content: any): string {
 function printHistory(messages: any[]): void {
   const turns = messages
     .map((m) => {
-      if (m && m.type === 'user') return { role: 'user', text: extractMessageText(m.message?.content) };
+      if (m && m.type === 'user') {
+        // 含 tool_result 的合成消息不是真实对话，回放时跳过
+        if (isToolResultMessage(m)) return null;
+        return { role: 'user', text: extractMessageText(m.message?.content) };
+      }
       if (m && m.type === 'assistant') return { role: 'assistant', text: extractMessageText(m.message?.content) };
       return null;
     })
@@ -267,7 +374,7 @@ function printHistory(messages: any[]): void {
 }
 
 /** 列出当前工作目录下的历史会话（从磁盘读取） */
-async function cmdSessions(workingDir: string): Promise<void> {
+async function cmdSessions(workingDir: string, opts: { verbose?: boolean } = {}): Promise<void> {
   const dir = getProjectHistoryDir(workingDir);
   console.log(c.bold('历史会话 ') + c.gray(`(工作目录: ${workingDir})`));
   if (!fs.existsSync(dir)) {
@@ -277,7 +384,14 @@ async function cmdSessions(workingDir: string): Promise<void> {
   const files = fs
     .readdirSync(dir)
     .filter((f) => /^((\d{4}-\d{2}-\d{2})_)?[0-9a-f]{8}\.json$/i.test(f));
-  const items: { id: string; date: string; preview: string; count: number; mtime: number }[] = [];
+  const items: {
+    id: string;
+    when: string;
+    title: string;
+    recent: string;
+    count: number;
+    mtime: number;
+  }[] = [];
   for (const f of files) {
     const fp = path.join(dir, f);
     try {
@@ -285,12 +399,15 @@ async function cmdSessions(workingDir: string): Promise<void> {
       const msgs: any[] = data.messages || [];
       const idMatch = f.match(/[0-9a-f]{8}/i);
       const id = idMatch ? idMatch[0] : '?';
-      const dMatch = f.match(/^(\d{4}-\d{2}-\d{2})/);
       const st = fs.statSync(fp);
+      const d = new Date(st.mtimeMs);
+      const pad = (n: number) => String(n).padStart(2, '0');
       items.push({
         id,
-        date: dMatch ? dMatch[1] : '-',
-        preview: firstUserText(msgs),
+        // 用文件 mtime（最后一次活动时间）而不是文件名里的日期：恢复旧会话后日期前缀不会变
+        when: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`,
+        title: firstUserText(msgs) || firstAssistantText(msgs),
+        recent: lastUserText(msgs),
         count: msgs.length,
         mtime: st.mtimeMs,
       });
@@ -303,14 +420,25 @@ async function cmdSessions(workingDir: string): Promise<void> {
     console.log(c.gray('  (无历史会话记录)'));
     return;
   }
+  const termWidth = process.stdout.columns || 100;
   for (const it of items) {
-    const prev = it.preview ? it.preview.replace(/\s+/g, ' ').slice(0, 50) : c.gray('(无文本预览)');
-    console.log('  • ' + c.cyan(it.id) + c.gray(`  ${it.date}  ${it.count}条  `) + prev);
+    const meta = `  ${it.when}  ${it.count}条  `;
+    const prefixWidth = displayWidth('  • ') + it.id.length + displayWidth(meta);
+    const title = it.title ? clipToWidth(it.title, termWidth - prefixWidth) : c.gray('(无文本预览)');
+    console.log('  • ' + c.cyan(it.id) + c.gray(meta) + title);
+
+    if (opts.verbose && it.recent && it.recent !== it.title) {
+      const recent = clipToWidth(it.recent, termWidth - 14);
+      console.log(c.gray('      ↳ 最近: ') + c.gray(recent));
+    }
   }
   console.log('');
   console.log(
     c.gray('  恢复指定会话: ') + c.cyan('cc --resume <会话ID>') + c.gray('  或  ') + c.cyan('cc resume <会话ID>')
   );
+  if (!opts.verbose) {
+    console.log(c.gray('  查看每个会话最近一轮内容: ') + c.cyan('cc sessions -v'));
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -712,7 +840,7 @@ async function main(): Promise<void> {
       return;
     case 'sessions':
     case 'list-sessions':
-      await cmdSessions(workingDir);
+      await cmdSessions(workingDir, { verbose: flags.v === true || flags.verbose === true });
       return;
     case 'resume': {
       const rid = positionals[1];
