@@ -14,6 +14,7 @@ export interface ModelProfile {
   modelName: string         // API 调用时使用的模型名 如：deepseek v3.1
   baseURL?: string          // 自定义 API 端点
   apiKey: string            // API 密钥
+  aigcUser?: string         // AIMP/Midea 网关用户标识（AIGC-USER 头），部分端点强制校验
   maxTokens: number         // 最大输出 token
   contextLength: number     // 上下文窗口大小
   adapt: AdapterType        // API 适配器类型

@@ -233,6 +233,10 @@ export async function queryOpenAI(
   if (apiKey) {
     headers['Authorization'] = `Bearer ${apiKey}`
   }
+  // AIMP/Midea 网关要求携带用户标识头（如 aimp-deepseek-v4-flash 强制校验，缺失会 403）
+  if (modelProfile.aigcUser) {
+    headers['AIGC-USER'] = modelProfile.aigcUser
+  }
 
   // 构建消息列表（Anthropic 转 OpenAI）
   const openaiMessages = buildOpenAIMessages(messages, systemPromptContent, enableThinking)
