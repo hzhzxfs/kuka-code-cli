@@ -161,7 +161,7 @@ test('final provider payload is adaptively minimized and follow-up rounds do not
     assert.ok(!messageText(first).includes('Available skills'))
     assert.ok(!messageText(first).includes('PDF BODY'))
     const second = mock.requests[1].body
-    assert.deepEqual(toolNames(second), ['run_shell'], 'follow-up keeps only the tool actually used')
+    assert.deepEqual(toolNames(second), [], 'follow-up sends no tool schemas')
     assert.ok(!messageText(second).includes('Available skills'))
     assert.ok(messageText(second).includes('date'), 'tool result is preserved')
     const stableSystem = first.messages[0].content

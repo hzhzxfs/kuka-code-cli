@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import * as path from 'path'
 import { getConfManager } from '../../manager/ConfManager'
-import { getSkillsManager, getSkillTypesDescription } from '../skills/skillsManager'
+import { getSkillTypesDescription } from '../skills/skillsManager'
 import { getContextMode } from '../../tools/base/tools'
 import { getMemoryDescription } from '../memory/memManager'
 import { getRuleDescription } from '../rules/rulesManager'
@@ -20,22 +20,8 @@ export function generateSkillsReminder(): Anthropic.ContentBlockParam[] {
     }]
   }
 
-  // adaptive：只发送轻量 registry（name / category / summary），正文按需加载
-  const registry = getSkillsManager().getSkillRegistry()
-  if (registry.length === 0) return []
-
-  const skillsDesc = registry
-    .map(entry => {
-      const category = entry.category && entry.category !== 'general' ? ` [${entry.category}]` : ''
-      const manual = entry.loadMode === 'manual' ? ' (manual)' : ''
-      return `- ${entry.name}${category}: ${entry.summary}${manual}`
-    })
-    .join('\n')
-
-  return [{
-    type: 'text' as const,
-    text: `${REMINDER_SYS_OPEN}\nAvailable skills (invoke via the skill tool or /name; the skill body loads only when dispatched):\n\n${skillsDesc}\n${REMINDER_SYS_CLOSE}`
-  }]
+  // adaptive：不注入任何 Available skills 列表；Skill 只通过匹配提示 + skill 工具按需加载
+  return []
 }
 
 export function generateRulesReminders(): Anthropic.ContentBlockParam[] {

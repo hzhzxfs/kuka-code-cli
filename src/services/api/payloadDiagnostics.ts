@@ -60,3 +60,53 @@ export function logPayloadDiagnostics(
     // 诊断失败不影响请求
   }
 }
+
+
+let entryLogged = false
+
+/** 仅 debug 模式输出一次实际入口与构建标识 */
+function logEntryOnce(): void {
+  if (entryLogged) return
+  entryLogged = true
+  try {
+    const pkg = require('../../../package.json')
+    logInfo('[llm-entry] ' + JSON.stringify({
+      entry: process.argv[1] || 'unknown',
+      version: pkg?.version || 'unknown',
+      node: process.version,
+    }))
+  } catch {
+    logInfo('[llm-entry] ' + JSON.stringify({ entry: process.argv[1] || 'unknown', version: 'unknown', node: process.version }))
+  }
+}
+
+/**
+ * 发送边界日志：数据全部来自最终 requestBody（转换后的 messages/tools）。
+ */
+export function logFinalRequestBoundary(body: any, sessionId?: string): void {
+  if (!isDebugLogging()) return
+  try {
+    const runtime = sessionId ? getStateManager().session(sessionId) : null
+    const bodyMessages = body?.messages || []
+    const bodyTools = body?.tools || []
+    const phase = (bodyMessages as any[]).some(message =>
+      message?.role === 'tool' ||
+      (Array.isArray(message?.content) && message.content.some((block: any) => block?.type === 'tool_result'))
+    ) ? 'tool_continuation' : 'initial'
+    logEntryOnce()
+    logInfo('[llm-boundary] ' + JSON.stringify({
+      requestPhase: phase,
+      stream: body?.stream === true,
+      loadingMode: getContextMode(),
+      selectedSkills: runtime ? runtime.getTurnMatchedSkills() : [],
+      selectedTools: runtime ? runtime.getTurnSelectedTools() : [],
+      finalTools: bodyTools.map((tool: any) => tool?.function?.name || tool?.name).filter(Boolean),
+      finalMessageChars: JSON.stringify(bodyMessages).length,
+      finalToolSchemaChars: JSON.stringify(bodyTools).length,
+      fullSkillsReminderIncluded: JSON.stringify(body).includes('Available skills'),
+      fallbackReason: runtime ? (runtime.getTurnSelectionReason() || 'none') : 'none',
+    }))
+  } catch {
+    // 诊断失败不影响请求
+  }
+}

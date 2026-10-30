@@ -11,6 +11,8 @@ import { logLLMRequest } from '../../../util/logLLM'
 import { logDebug, logError } from '../../../util/log'
 import { ukukaxCompletionTokens } from '../../../util/adapter'
 import { emitChunkEvent, getChunkEventBus, withStreamTimeout } from './util'
+import { guardFinalRequest } from '../finalRequestGuard'
+import { logFinalRequestBoundary } from '../payloadDiagnostics'
 
 // openai 不要温度了，部分模型开了think只能为1，不开think只能为0.6，干脆不加了
 
@@ -238,11 +240,14 @@ export async function queryOpenAI(
     headers['AIGC-USER'] = modelProfile.aigcUser
   }
 
+  // 最终边界守卫：adaptive 下只发送本轮选中的工具，并移除全量 Skill 提醒
+  const guarded = guardFinalRequest(messages, tools, sessionId)
+
   // 构建消息列表（Anthropic 转 OpenAI）
-  const openaiMessages = buildOpenAIMessages(messages, systemPromptContent, enableThinking)
+  const openaiMessages = buildOpenAIMessages(guarded.messages, systemPromptContent, enableThinking)
 
   // 转换工具定义
-  const openaiTools = tools.length > 0 ? convertToolsToOpenAI(tools) : undefined
+  const openaiTools = guarded.tools.length > 0 ? convertToolsToOpenAI(guarded.tools) : undefined
 
   // 构建请求参数
   const requestBody: OpenAI.ChatCompletionCreateParamsStreaming = {
@@ -265,6 +270,7 @@ export async function queryOpenAI(
     ),
   } as any
 
+  logFinalRequestBoundary(requestBody, sessionId)
   logLLMRequest(requestBody, sessionId)
 
   // 统一使用 streamChat 处理请求（合并超时信号，最长等待 5 分钟）

@@ -276,6 +276,7 @@ function getAdaptiveTools(sessionId: string, allTools: Tool[]): Tool[] {
     const simpleTools = selection.names
       .map(name => byName.get(name))
       .filter((tool): tool is Tool => !!tool)
+    runtime.setTurnSelectedTools(simpleTools.map(tool => tool.name))
     runtime.setTurnToolsCache(cacheKey, simpleTools)
     logInfo('tools len: ' + simpleTools.length + ' (adaptive simple: ' + selection.names.join(', ') + ')')
     return simpleTools
@@ -297,6 +298,7 @@ function getAdaptiveTools(sessionId: string, allTools: Tool[]): Tool[] {
   const tools = hasDeferred
     ? [...selected, createSessionLoadTools(sessionId), ...loaded]
     : [...selected, ...loaded]
+  runtime.setTurnSelectedTools(tools.map(tool => tool.name))
   runtime.setTurnToolsCache(cacheKey, tools)
   logInfo('tools len: ' + tools.length + ' (adaptive: ' + selection.basis + ', groups: ' + selection.groups.join('+') + ', loaded: ' + loaded.length + ')')
   return tools

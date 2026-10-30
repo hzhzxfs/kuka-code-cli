@@ -115,6 +115,15 @@ export async function* ReAct(
     return
   }
 
+  // 简单单步任务（时间查询等）调用工具时不保留前置说明文本，避免用户看到“我查一下”之类废话
+  if (!isSubagent && agentContext.agentId === MAIN_AGENT_ID) {
+    const runtime = getStateManager().session(sessionId)
+    const hasToolUse = assistantMessage.message.content.some(block => block.type === 'tool_use')
+    if (hasToolUse && runtime.getTurnToolPolicy() === 'simple') {
+      assistantMessage.message.content = assistantMessage.message.content.filter(block => block.type !== 'text')
+    }
+  }
+
   // 检测输出是否被截断（stop_reason === 'max_tokens'）
   const isTruncated = assistantMessage.message.stop_reason === 'max_tokens'
   if (isTruncated) {
@@ -437,14 +446,8 @@ function resolveRequestTools(
     )
     if (resultIds.size === 0) return tools
 
-    const usedNames = new Set<string>()
-    for (const message of messages) {
-      if (message.type !== 'assistant') continue
-      for (const block of message.message.content) {
-        if (block.type === 'tool_use' && resultIds.has(block.id)) usedNames.add(block.name)
-      }
-    }
-    return tools.filter(tool => usedNames.has(tool.name))
+    // simple 轮次在 tool result 之后只生成最终自然语言答案：不再发送任何工具 schema
+    return []
   } catch {
     return tools
   }

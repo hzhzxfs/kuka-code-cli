@@ -7,6 +7,8 @@ import { buildTools } from '../../../tools/base/tools'
 import { logLLMRequest } from '../../../util/logLLM'
 import { logDebug, logError } from '../../../util/log'
 import { emitChunkEvent, getChunkEventBus, withStreamTimeout } from './util'
+import { guardFinalRequest } from '../finalRequestGuard'
+import { logFinalRequestBoundary } from '../payloadDiagnostics'
 
 // --- Types ---
 
@@ -224,11 +226,14 @@ export async function queryAnthropic(
     headers['x-api-key'] = apiKey
   }
 
+  // 最终边界守卫：adaptive 下只发送本轮选中的工具，并移除全量 Skill 提醒
+  const guarded = guardFinalRequest(messages, tools, sessionId)
+
   // 构建消息列表
-  const anthropicMessages = buildAnthropicMessages(messages, enableThinking)
+  const anthropicMessages = buildAnthropicMessages(guarded.messages, enableThinking)
 
   // 转换工具定义
-  const anthropicTools = tools.length > 0 ? buildTools(tools) : undefined
+  const anthropicTools = guarded.tools.length > 0 ? buildTools(guarded.tools) : undefined
 
   // 构建请求参数
   const requestBody: StreamParams['body'] = {
@@ -255,6 +260,7 @@ export async function queryAnthropic(
     requestBody.thinking = { type: 'disabled' }
   }
 
+  logFinalRequestBoundary(requestBody, sessionId)
   logLLMRequest(requestBody, sessionId)
 
   // 统一使用 streamChat 处理请求（合并超时信号，最长等待 5 分钟）

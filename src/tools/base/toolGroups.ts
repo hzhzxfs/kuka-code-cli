@@ -93,7 +93,7 @@ const MCP_RE = /\bmcp\b|model context protocol/i
 /** 简单请求类型：只发送完成该单步任务所需的最小工具集 */
 export type SimpleKind = 'time' | 'greeting' | 'read-file' | 'search'
 
-const TIME_RE = /^(现在|当前)?(的)?(系统)?(时间|日期|几号|几点)(是|为)?(多少|什么|？|\?|$)|^(what('| i)?s|tell me) the (current )?(time|date)/i
+const TIME_RE = /^(?:(?:现在|当前|今天|今日)\s*)?(?:的)?(?:系统)?(?:时间|日期|几号|几点|星期几|星期|周几|礼拜几)\s*(?:是|为|多少|什么|几号|几|了|？|\?|。|!|！|$)|^(?:what('| i)?s|tell me) the (current )?(time|date|day)|^what (time|day) is it/i
 const GREETING_RE = /^(hi|hello|hey|你好|您好|谢谢|多谢|thanks?|thx)[!.。！\s]*$/i
 const READ_FILE_RE = /^(看看|查看|读取|打开|read|show|cat|open)\s+[\x60"']?[\w./~-]+\.(ts|tsx|js|json|md|txt|py|go|java|css|html|ya?ml|toml|sh|rs|c|cpp|h)\b/i
 const SEARCH_RE = /^(搜索|查找|找一下|search|grep|find|locate)\s+\S+/i
@@ -102,7 +102,7 @@ const SEARCH_RE = /^(搜索|查找|找一下|search|grep|find|locate)\s+\S+/i
 export function detectSimpleKind(input: string): SimpleKind | undefined {
   const text = (input || '').trim()
   if (!text) return undefined
-  if (TIME_RE.test(text)) return 'time'
+  if (text.length <= 32 && !AUTOMATION_RE.test(text) && TIME_RE.test(text)) return 'time'
   if (GREETING_RE.test(text)) return 'greeting'
   if (READ_FILE_RE.test(text) && text.length <= 120) return 'read-file'
   if (SEARCH_RE.test(text) && text.length <= 80 && !/修改|实现|重构|修复|refactor|implement|fix/i.test(text)) {

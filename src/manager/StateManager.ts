@@ -143,6 +143,8 @@ export class SessionRuntime {
   private turnSelectionReason = '';
   // 本轮匹配到的 Skill 名（诊断日志用）
   private turnMatchedSkills: string[] = [];
+  // 本轮最终选中的工具名（最终请求边界校验用）
+  private turnSelectedTools: string[] = [];
   // 本会话已加载 Skill 正文的字符数（诊断日志用）
   private loadedSkillChars = 0;
   // 本轮工具集缓存：同一轮内重复组装（含 load_tools 描述）直接命中，避免重复遍历/构建
@@ -587,6 +589,7 @@ export class SessionRuntime {
     this.turnToolPolicy = 'full'
     this.turnSelectionReason = ''
     this.turnMatchedSkills = []
+    this.turnSelectedTools = []
     this.loadedSkillChars = 0
     this.turnToolsCache = null
   }
@@ -644,6 +647,14 @@ export class SessionRuntime {
     return [...this.turnMatchedSkills]
   }
 
+  setTurnSelectedTools(names: string[]): void {
+    this.turnSelectedTools = [...names]
+  }
+
+  getTurnSelectedTools(): string[] {
+    return [...this.turnSelectedTools]
+  }
+
   addLoadedSkillChars(chars: number): void {
     this.loadedSkillChars += Math.max(0, chars)
   }
@@ -692,6 +703,7 @@ export class SessionRuntime {
     this.turnToolPolicy = 'full';
     this.turnSelectionReason = '';
     this.turnMatchedSkills = [];
+    this.turnSelectedTools = [];
     this.loadedSkillChars = 0;
     this.turnToolsCache = null;
 
