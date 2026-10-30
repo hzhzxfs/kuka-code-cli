@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk'
 import * as path from 'path'
 import { getConfManager } from '../../manager/ConfManager'
-import { getSkillTypesDescription } from '../skills/skillsManager'
+import { getSkillsManager, getSkillTypesDescription } from '../skills/skillsManager'
+import { getContextMode } from '../../tools/base/tools'
 import { getMemoryDescription } from '../memory/memManager'
 import { getRuleDescription } from '../rules/rulesManager'
 import { readInitialCwd } from '../../util/cwd'
@@ -9,14 +10,31 @@ import { PLAN_MODE_SYSTEM_REMINDER_PROMPT } from '../../prompt/plan'
 import { REMINDER_SYS_OPEN, REMINDER_SYS_CLOSE } from '../../prompt/define'
 
 export function generateSkillsReminder(): Anthropic.ContentBlockParam[] {
-  const skillsDesc = getSkillTypesDescription()
-  if (!skillsDesc) return []
+  // legacy：保持原有 name: description 全量清单
+  if (getContextMode() === 'legacy') {
+    const skillsDesc = getSkillTypesDescription()
+    if (!skillsDesc) return []
+    return [{
+      type: 'text' as const,
+      text: `${REMINDER_SYS_OPEN}\nAvailable skills (invoke via the skill tool):\n\n${skillsDesc}\n${REMINDER_SYS_CLOSE}`
+    }]
+  }
 
-  const reminder = `${REMINDER_SYS_OPEN}\nAvailable skills (invoke via the skill tool):\n\n${skillsDesc}\n${REMINDER_SYS_CLOSE}`
+  // adaptive：只发送轻量 registry（name / category / summary），正文按需加载
+  const registry = getSkillsManager().getSkillRegistry()
+  if (registry.length === 0) return []
+
+  const skillsDesc = registry
+    .map(entry => {
+      const category = entry.category && entry.category !== 'general' ? ` [${entry.category}]` : ''
+      const manual = entry.loadMode === 'manual' ? ' (manual)' : ''
+      return `- ${entry.name}${category}: ${entry.summary}${manual}`
+    })
+    .join('\n')
 
   return [{
     type: 'text' as const,
-    text: reminder
+    text: `${REMINDER_SYS_OPEN}\nAvailable skills (invoke via the skill tool or /name; the skill body loads only when dispatched):\n\n${skillsDesc}\n${REMINDER_SYS_CLOSE}`
   }]
 }
 

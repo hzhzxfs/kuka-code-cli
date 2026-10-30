@@ -90,7 +90,8 @@ export class ConfigManager {
       'skipExternalFileReadPermission',
       'enableLLMCache',
       'disableBackgroundTasks',
-      'enableToolSearch'
+      'enableToolSearch',
+      'contextMode'
     ];
 
     if (!allowedKeys.includes(key)) {

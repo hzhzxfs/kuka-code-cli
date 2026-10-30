@@ -25,6 +25,8 @@ import { getCheckpointManager } from '../manager/CheckpointManager';
 import { handleCommand } from '../services/commands/runCommand';
 import { getTaskManager } from '../manager/TaskManager';
 import { getCronManager } from '../manager/CronManager';
+import { getSkillsManager } from '../services/skills/skillsManager';
+import { buildSkillDispatchReminders } from '../services/skills/skillDispatch';
 import { handlequickchat } from '../util/quickchat';
 import { TOOL_NAME_SKILL } from '../prompt/tool';
 import type { AgentMode, PermissionLevel } from '../types';
@@ -85,6 +87,9 @@ export class KukaEngine {
 
     // 构建会话级系统提示快照：整个会话不再变化（env/gitStatus 取会话创建时的快照）
     this.runtime.setSystemPromptContent(await formatSystemPrompt());
+
+    // 新会话不复用其它会话解析的旧 Skill 正文：缓存陈旧时重新扫描（失败不影响启动）
+    await getSkillsManager().refreshIfStale();
 
     const mainAgentState = this.runtime.forAgent(MAIN_AGENT_ID);
     const workingDir = coreConfig?.workingDir;
@@ -217,7 +222,10 @@ export class KukaEngine {
 
     const agentMode = this.runtime.agentMode;
 
-    // 获取工具集（按核心级 useTools 黑名单过滤；工具搜索模式下按会话组装）
+    // 标记新的一轮用户输入：重置本轮 Skill 去重、沿用上一轮工具组，供按需加载使用
+    this.runtime.beginTurn(inputs.map(item => item.input).join('\n'));
+
+    // 获取工具集（按核心级 useTools 黑名单过滤；adaptive 模式下按本轮任务选择工具组）
     const tools = getAvailableTools(undefined, { sessionId: this.sessionId });
 
     // 构建主代理上下文
@@ -346,12 +354,17 @@ export class KukaEngine {
 
       // 回合级提醒（skills/rules/plan/design）：传空 systemReminders，仅取回合级部分，挂到首条消息；
       // 文件引用提醒已按 inputId 拆到各自输入（见 perInput.fileRefReminders）
+      const skillDispatchReminders = hasSkillTool
+        ? buildSkillDispatchReminders(inputs.map(item => item.input).join('\n'), { sessionId: this.sessionId })
+        : []
+
       const turnLevelReminders = buildAdditionalReminders(
         [],
         messageHistory,
         agentMode,
         this.sessionId,
-        hasSkillTool
+        hasSkillTool,
+        skillDispatchReminders
       )
       // 打 Fork 锚点：记录本批输入发送时已累积的文件快照数，并开启新的快照 segment
       const checkpointSeq = getCheckpointManager().beginTurn(this.sessionId)

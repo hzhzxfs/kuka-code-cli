@@ -13,10 +13,16 @@ import { getKukacodeRootDir } from '../../util/savePath'
 import { readInitialCwd } from '../../util/cwd'
 import { parseFile } from '../../util/formatter'
 import { getPluginsManager } from '../plugins/pluginsManager'
-import { SkillConfig } from '../../types/skill'
+import { SkillConfig, SkillLoadMode, SkillRegistryEntry } from '../../types/skill'
+import {
+  buildSkillRegistry,
+  resolveSkillRef,
+  toSkillSummary,
+} from './skillRegistry'
 
 
 const SKILL_FILE_NAME = 'SKILL.md'
+const DEFAULT_REFRESH_AGE_MS = 30_000
 
 /**
  * Skills 管理器类 - 单例模式
@@ -30,13 +36,15 @@ class SkillsManager {
   private skillInfoCache: SkillConfig[] | null = null
   // 后台加载 Promise
   private loadingPromise: Promise<SkillConfig[]> | null = null
+  // 最近一次全量扫描时间（用于会话启动时的陈旧缓存刷新）
+  private lastLoadAt = 0
 
-  constructor() {
+  constructor(dirs?: { userSkillsDir?: string; projectSkillsDir?: string }) {
     const kukaRootDir = getKukacodeRootDir()
-    this.kukaUserSkillsDir = path.join(kukaRootDir, 'skills')
+    this.kukaUserSkillsDir = dirs?.userSkillsDir ?? path.join(kukaRootDir, 'skills')
 
     const cwd = readInitialCwd()
-    this.kukaProjectSkillsDir = path.join(cwd, '.kukacode', 'skills')
+    this.kukaProjectSkillsDir = dirs?.projectSkillsDir ?? path.join(cwd, '.kukacode', 'skills')
 
     // 后台静默加载 skills 信息
     this.loadingPromise = this.loadAndCacheSkills()
@@ -174,11 +182,29 @@ class SkillsManager {
         throw new Error(`Skill 文件格式错误 [${filePath}]: name/description/prompt 必须为非空字符串`)
       }
 
+      // 元数据均为可选，缺省值与旧版 Skill 文件向后兼容
+      const folderName = path.basename(path.dirname(filePath))
+      const aliases = toStringList(metadata.aliases ?? metadata.alias)
+      if (folderName && folderName !== name && !aliases.includes(folderName)) {
+        aliases.push(folderName)
+      }
+      const summary = typeof metadata.summary === 'string' && metadata.summary.trim()
+        ? metadata.summary.trim()
+        : toSkillSummary(description)
+      const loadMode: SkillLoadMode = metadata.loadMode === 'manual' ? 'manual' : 'auto'
+
       return {
         name,
         description,
         prompt: promptStr,
-        filePath
+        filePath,
+        summary,
+        category: typeof metadata.category === 'string' && metadata.category.trim() ? metadata.category.trim() : 'general',
+        triggers: toStringList(metadata.triggers ?? metadata.trigger),
+        aliases,
+        loadMode,
+        requires: toStringList(metadata.requires ?? metadata.dependencies),
+        fileMtimeMs: statMtime(filePath),
       }
     } catch (error) {
       logError(`解析 Skill 文件失败 [${filePath}]: ${error}`)
@@ -211,8 +237,65 @@ class SkillsManager {
     }))
 
     this.skillInfoCache = skillInfos
+    this.lastLoadAt = Date.now()
     logInfo(`Skills 信息刷新完成: ${skillInfos.length} 个 Skill`)
     return skillInfos
+  }
+
+  /**
+   * 会话启动时刷新陈旧缓存：避免上一会话解析的旧 SKILL.md 正文长期污染新会话。
+   * 失败只记录日志，不影响会话创建。
+   */
+  async refreshIfStale(maxAgeMs = DEFAULT_REFRESH_AGE_MS): Promise<void> {
+    if (this.loadingPromise) {
+      await this.loadingPromise
+      return
+    }
+    if (Date.now() - this.lastLoadAt < maxAgeMs) return
+    try {
+      await this.loadAndCacheSkills()
+    } catch (error) {
+      logWarn(`刷新 Skills 缓存失败，沿用现有缓存: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  /**
+   * 轻量 registry：只含元数据，不含 SKILL.md 正文。
+   * 用于路由、reminder 与自动匹配，禁止把 prompt 复制到这里。
+   */
+  getSkillRegistry(): SkillRegistryEntry[] {
+    return buildSkillRegistry(this.getSkillsConfs())
+  }
+
+  /**
+   * 名称/别名解析：显式调用与自动匹配统一走规范化名称，alias 不会造成重复加载
+   */
+  resolveSkillName(ref: string): string | undefined {
+    return resolveSkillRef(this.getSkillRegistry(), ref)?.name
+  }
+
+  /**
+   * 显式加载前校验文件新鲜度：mtime 变化则重新解析并更新缓存。
+   * 解析失败返回 undefined，由调用方给出用户可见错误（不崩溃、不无限重试）。
+   */
+  async getSkillConfigFresh(name: string): Promise<SkillConfig | undefined> {
+    const resolvedName = this.resolveSkillName(name) ?? name
+    const config = this.skillConfigs.get(resolvedName)
+    if (!config?.filePath) return config
+
+    const mtime = statMtime(config.filePath)
+    if (mtime !== undefined && mtime === config.fileMtimeMs) return config
+
+    const reparsed = await this.parseSkillFile(config.filePath)
+    if (!reparsed) {
+      logWarn(`Skill 文件已变更但解析失败，沿用缓存 [${config.filePath}]`)
+      return config
+    }
+    this.skillConfigs.set(reparsed.name, { ...reparsed, locate: config.locate })
+    if (reparsed.name !== resolvedName) this.skillConfigs.delete(resolvedName)
+    this.invalidateCache()
+    logInfo(`Skill 已按文件变更重新解析: ${reparsed.name}`)
+    return reparsed
   }
 
   /**
@@ -325,6 +408,24 @@ export function getSkillsManager(): SkillsManager {
 
 export function getSkillTypesDescription(): string {
   return getSkillsManager().getSkillTypesDescription()
+}
+
+function toStringList(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map(item => String(item).trim()).filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    return value.split(',').map(item => item.trim()).filter(Boolean)
+  }
+  return []
+}
+
+function statMtime(filePath: string): number | undefined {
+  try {
+    return fs.statSync(filePath).mtimeMs
+  } catch {
+    return undefined
+  }
 }
 
 export { SkillsManager }

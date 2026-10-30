@@ -5,6 +5,11 @@ export type AgentMode = 'Agent' | 'Plan' | 'Design';
 // 系统提示词模式：append=配置的 systemPrompt 叠加在内置提示词前（默认），replace=替换内置提示词
 export type SystemPromptMode = 'append' | 'replace';
 
+// 上下文加载模式：
+// - legacy：与旧版一致，所有可用工具 schema 一次性发送
+// - adaptive：按任务确定性加载工具组与 Skill，低置信度回退保守路径
+export type ContextMode = 'legacy' | 'adaptive';
+
 // 权限自由度档位（从低到高）
 // - Ask：每次动作都询问
 // - AutoEdit：项目内文件编辑自动放行，其余仍询问
@@ -32,6 +37,7 @@ export interface KukaCoreConfig {
   agentMode?: AgentMode;             // 默认 'Agent'
   disableTopicDetection?: boolean;   // 是否禁用话题检测，默认 否
   disableBackgroundTasks?: boolean;  // 是否禁止后台任务（Bash后台/Agent后台/超时转后台），默认 否
+  contextMode?: ContextMode;         // 上下文加载模式，默认 'adaptive'；'legacy' 保持旧行为（全量 Skill 列表与全量工具 schema）
   enableToolSearch?: boolean;        // 是否开启工具搜索（延迟加载），默认 否；开启后仅默认工具集进入 LLM tools，
                                      // 其余内置工具与 MCP 工具通过 load_tools 按名加载；
                                      // 运行时更新于下一次用户输入生效，切换后的首次请求前缀缓存会整体失效一次
@@ -45,7 +51,7 @@ export interface KukaCoreConfig {
 }
 
 // 支持动态更新的核心配置字段
-export type UpdatableCoreConfigKeys = 'stream' | 'thinking' | 'systemPrompt' | 'customRules' | 'skipFileEditPermission' | 'skipShellExecPermission' | 'skipSkillPermission' | 'skipMCPToolPermission' | 'skipFetchUrlPermission' | 'skipExternalFileReadPermission' | 'enableLLMCache' | 'disableBackgroundTasks' | 'enableToolSearch';
+export type UpdatableCoreConfigKeys = 'stream' | 'thinking' | 'systemPrompt' | 'customRules' | 'skipFileEditPermission' | 'skipShellExecPermission' | 'skipSkillPermission' | 'skipMCPToolPermission' | 'skipFetchUrlPermission' | 'skipExternalFileReadPermission' | 'enableLLMCache' | 'disableBackgroundTasks' | 'enableToolSearch' | 'contextMode';
 
 // 默认核心配置
 export const defaultCoreConfig = {
@@ -62,6 +68,7 @@ export const defaultCoreConfig = {
   enableLLMCache: false,
   disableBackgroundTasks: false,
   enableToolSearch: false,
+  contextMode: 'adaptive' as ContextMode,
 };
 
 // 可更新的核心配置类型（基于默认配置）

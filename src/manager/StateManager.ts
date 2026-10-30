@@ -130,6 +130,14 @@ export class SessionRuntime {
   // === 会话级配置（从全局 coreConfig 下沉到会话级）===
   public agentMode: AgentMode = 'Agent';
 
+  // === 按需上下文：轮次 / Skill 去重 / 工具组连续性 ===
+  // turnSeq 每收到一批新用户输入 +1；Skill 去重与工具组沿用均以轮为单位
+  private turnSeq = 0;
+  private currentTurnInput = '';
+  private skillsLoadedThisTurn = new Set<string>();
+  private prevTurnToolGroups: string[] = [];
+  private currentTurnToolGroups = new Set<string>();
+
   // 工具搜索模式下本会话已动态加载的工具名（内置名或 mcp__ 全名）
   // append-only：顺序即 tools 数组尾部的追加顺序，保证 LLM 前缀缓存稳定，不提供移除/重排
   private loadedToolNames: string[] = [];
@@ -556,6 +564,48 @@ export class SessionRuntime {
   }
 
   // ============================================================
+  // 按需上下文：轮次边界、Skill 去重、工具组连续性
+  // ============================================================
+
+  /** 开始新一轮用户输入：轮次 +1，重置本轮 Skill 去重，保留上一轮工具组用于任务连续性 */
+  beginTurn(input: string): void {
+    this.turnSeq += 1
+    this.currentTurnInput = input
+    this.skillsLoadedThisTurn.clear()
+    this.prevTurnToolGroups = [...this.currentTurnToolGroups]
+    this.currentTurnToolGroups.clear()
+  }
+
+  getTurnSeq(): number {
+    return this.turnSeq
+  }
+
+  getTurnInput(): string {
+    return this.currentTurnInput
+  }
+
+  /** 标记本轮已加载 Skill；返回 false 表示本轮已加载过（规范化名称去重） */
+  markSkillLoaded(normalizedName: string): boolean {
+    if (this.skillsLoadedThisTurn.has(normalizedName)) return false
+    this.skillsLoadedThisTurn.add(normalizedName)
+    return true
+  }
+
+  isSkillLoadedThisTurn(normalizedName: string): boolean {
+    return this.skillsLoadedThisTurn.has(normalizedName)
+  }
+
+  /** 记录本轮实际使用的工具组（下一轮沿用，避免工作流中途卸载） */
+  markToolGroupUsed(group: string): void {
+    this.currentTurnToolGroups.add(group)
+  }
+
+  /** 上一轮实际使用的工具组 */
+  getPrevTurnToolGroups(): string[] {
+    return [...this.prevTurnToolGroups]
+  }
+
+  // ============================================================
   // 清理
   // ============================================================
 
@@ -579,6 +629,11 @@ export class SessionRuntime {
     this.clearPendingUserInputs();
     this.loadedToolNames = [];
     this.agentLoadedToolNamesMap.clear();
+    this.turnSeq = 0;
+    this.currentTurnInput = '';
+    this.skillsLoadedThisTurn.clear();
+    this.prevTurnToolGroups = [];
+    this.currentTurnToolGroups.clear();
 
     logInfo(`[${this.sessionId}] 所有状态数据已清空`);
   }

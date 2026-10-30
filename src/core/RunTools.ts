@@ -10,6 +10,8 @@ import { logError } from '../util/log'
 import { ToolExecutionCompleteData, ToolExecutionErrorData } from '../events/types'
 import { checkToolPermission } from '../manager/PermissionManager'
 import { getEventBus } from '../events/EventSystem'
+import { getStateManager, MAIN_AGENT_ID } from '../manager/StateManager'
+import { getToolGroup } from '../tools/base/toolGroups'
 
 
 // 并发运行工具
@@ -95,6 +97,11 @@ export async function* runToolUse(
   }
 
   const toolInput = toolUse.input as { [key: string]: any }
+
+  // 记录工具组使用情况：主代理下一轮沿用该组，避免工作流中途卸载仍需要的工具
+  if (agentContext.agentId === MAIN_AGENT_ID) {
+    getStateManager().session(agentContext.sessionId).markToolGroupUsed(getToolGroup(tool.name))
+  }
 
   try {
 

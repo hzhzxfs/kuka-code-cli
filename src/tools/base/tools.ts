@@ -29,14 +29,15 @@ import { CreateCron } from '../CreateCron'
 import { DelCron } from '../DelCron'
 import { ListCrons } from '../ListCrons'
 import { FetchUrl } from '../FetchUrl'
-import { LoadTools } from '../LoadTools'
+import { LoadTools, createSessionLoadTools } from '../LoadTools'
 import { getMCPManager } from '../../services/mcp/MCPManager'
 import { getConfManager } from '../../manager/ConfManager'
 import { getStateManager } from '../../manager/StateManager'
 import { zodToJsonSchema } from 'zod-to-json-schema'
 import { memoize } from 'lodash-es'
-import { ToolInfo } from '../../types/index'
+import { ToolInfo, ContextMode } from '../../types/index'
 import { logInfo, logWarn } from '../../util/log'
+import { selectToolsForTurn, ToolGroup } from './toolGroups'
 
 
 const BG_TOOLS = new Set([TOOL_NAME_RUN_SHELL, TOOL_NAME_SUB_AGENT])
@@ -53,6 +54,21 @@ export const SUBAGENT_EXCLUDED_TOOLS = new Set([
 
 // 将工具对象安全转换为 Tool 类型（各工具的字面量类型与 Tool 泛型不完全匹配）
 const asTool = (tool: any): Tool => tool
+
+/**
+ * 解析上下文加载模式：
+ * - 显式 'legacy' / 'adaptive' 优先
+ * - 配置缺失时默认 adaptive（按需加载，低置信度回退保守路径）
+ * - 旧配置启用 enableToolSearch 且未配置 contextMode 时，保持工具搜索模式（legacy）
+ */
+export function getContextMode(): ContextMode {
+  const config = getConfManager().getCoreConfig()
+  if (config?.contextMode === 'legacy' || config?.contextMode === 'adaptive') {
+    return config.contextMode
+  }
+  if (config?.enableToolSearch) return 'legacy'
+  return 'adaptive'
+}
 
 // 获取全部内置工具信息（含启用/禁用状态）
 // useTools 不传时回退到全局默认配置
@@ -159,14 +175,21 @@ export function getToolSearchDefaultNames(useTools?: string[] | null): string[] 
   return result
 }
 
-// 工具搜索模式：延迟池（未默认加载的内置可用工具 + MCP 工具），供 load_tools 加载
-export function getDeferredTools(useTools?: string[] | null): Tool[] {
+// 延迟池（未进入当前工具列表的内置可用工具 + MCP 工具），供 load_tools 加载
+// adaptive 模式下按会话当前选择计算，保证发现名单与本次请求的工具集一致
+export function getDeferredTools(useTools?: string[] | null, sessionId?: string): Tool[] {
   if (useTools === undefined) {
     useTools = getConfManager().getCoreConfig()?.useTools
   }
-  const defaultNames = new Set(getToolSearchDefaultNames(useTools))
   const all = [...getAvailableBuiltinTools(useTools), ...getMCPManager().getMCPTools()]
-  return all.filter(tool => !defaultNames.has(tool.name))
+
+  if (getContextMode() === 'adaptive' && sessionId) {
+    const active = new Set(getAvailableTools(useTools, { sessionId }).map(tool => tool.name))
+    return all.filter(tool => !active.has(tool.name))
+  }
+
+  const defaultNames = new Set(getToolSearchDefaultNames(useTools))
+  return all.filter(tool => !defaultNames.has(tool.name) && tool.name !== TOOL_NAME_LOAD_TOOLS)
 }
 
 // 获取可用内置工具 + MCP 工具
@@ -178,6 +201,13 @@ export function getAvailableTools(useTools?: string[] | null, opts?: { sessionId
   }
   const builtinTools = getAvailableBuiltinTools(useTools)
   const mcpTools = getMCPManager().getMCPTools()
+  const contextMode = getContextMode()
+
+  // adaptive：按本轮任务确定性选择工具组（core + 命中的组 + 上一轮使用的组）
+  if (contextMode === 'adaptive' && opts?.sessionId) {
+    return getAdaptiveTools(opts.sessionId, [...builtinTools, ...mcpTools])
+  }
+
   const enableToolSearch = getConfManager().getCoreConfig()?.enableToolSearch ?? false
 
   if (!enableToolSearch || !opts?.sessionId) {
@@ -213,6 +243,47 @@ export function getAvailableTools(useTools?: string[] | null, opts?: { sessionId
   return tools
 }
 
+
+/**
+ * adaptive 模式工具集组装：稳定顺序 + append-only 的已加载工具段。
+ * 不在核心/命中组内的工具通过 load_tools 的能力发现名单暴露，不会被静默移除。
+ */
+function getAdaptiveTools(sessionId: string, allTools: Tool[]): Tool[] {
+  const runtime = getStateManager().session(sessionId)
+  const byName = new Map<string, Tool>()
+  allTools.forEach(tool => byName.set(tool.name, tool))
+
+  const selection = selectToolsForTurn({
+    input: runtime.getTurnInput(),
+    availableNames: allTools.map(tool => tool.name),
+    mcpServerNames: getMCPManager().getMCPTools().map(tool => tool.name.split('__')[1] || tool.name),
+    mode: 'adaptive',
+    carriedGroups: runtime.getPrevTurnToolGroups() as ToolGroup[],
+  })
+
+  const selectedNames = new Set(selection.names)
+  const selected = selection.names
+    .map(name => byName.get(name))
+    .filter((tool): tool is Tool => !!tool)
+
+  // 已通过 load_tools 显式加载的工具继续保留（append-only，保证前缀缓存稳定）
+  const loadedNames = runtime.getLoadedToolNames().filter(name => !selectedNames.has(name))
+  const loaded = loadedNames
+    .map(name => byName.get(name))
+    .filter((tool): tool is Tool => !!tool)
+
+  const hasDeferred = allTools.some(tool => !selectedNames.has(tool.name) && !loadedNames.includes(tool.name))
+  const tools = hasDeferred
+    ? [...selected, createSessionLoadTools(sessionId), ...loaded]
+    : [...selected, ...loaded]
+  logInfo(`tools len: ${tools.length} (adaptive: ${selection.basis}, groups: ${selection.groups.join('+')}, loaded: ${loaded.length})`)
+  return tools
+}
+
+/** 当前会话实际可用的工具名（adaptive 选择 + 已加载），供 load_tools 校验使用 */
+export function getActiveToolNames(sessionId?: string): string[] {
+  return getAvailableTools(undefined, { sessionId }).map(tool => tool.name)
+}
 
 // 从 zod schema 中提取 required 字段
 function extractRequiredFields(schema: any): string[] {

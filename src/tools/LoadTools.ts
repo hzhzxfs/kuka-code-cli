@@ -3,7 +3,8 @@ import { Tool } from './base/Tool'
 import { ToolControlSignal } from '../types/message'
 import { TOOL_NAME_LOAD_TOOLS } from '../prompt/tool'
 import { getStateManager } from '../manager/StateManager'
-import { getDeferredTools, getToolSearchDefaultNames } from './base/tools'
+import { getDeferredTools, getToolSearchDefaultNames, getActiveToolNames } from './base/tools'
+import { getToolGroup, TOOL_GROUP_DESCRIPTIONS, TOOL_GROUP_ORDER, ToolGroup } from './base/toolGroups'
 
 const TOOL_NAME = TOOL_NAME_LOAD_TOOLS
 
@@ -19,9 +20,10 @@ type ToolRes = {
   controlSignal?: ToolControlSignal
 }
 
-// 可加载名单排版：延迟内置工具名 + 各 MCP server 的工具原名（全名 = mcp__{server}__{tool}）
+// 可加载名单排版：按用途分组的内置工具名 + 各 MCP server 的工具原名（全名 = mcp__{server}__{tool}）
+// 只暴露名字与组说明，不发送未加载工具的完整 schema
 function formatScopeOverview(deferred: Tool[]): string {
-  const builtinNames: string[] = []
+  const byGroup = new Map<ToolGroup, string[]>()
   const mcpByServer = new Map<string, string[]>()
   for (const tool of deferred) {
     if (tool.name.startsWith('mcp__')) {
@@ -31,13 +33,18 @@ function formatScopeOverview(deferred: Tool[]): string {
       if (!mcpByServer.has(server)) mcpByServer.set(server, [])
       mcpByServer.get(server)!.push(origName)
     } else {
-      builtinNames.push(tool.name)
+      const group = getToolGroup(tool.name)
+      if (!byGroup.has(group)) byGroup.set(group, [])
+      byGroup.get(group)!.push(tool.name)
     }
   }
 
   const lines: string[] = []
-  if (builtinNames.length > 0) {
-    lines.push(`Deferred built-in tools: ${builtinNames.join(', ')}`)
+  for (const group of TOOL_GROUP_ORDER) {
+    const names = byGroup.get(group)
+    if (names && names.length > 0) {
+      lines.push(`- ${group} (${TOOL_GROUP_DESCRIPTIONS[group]}): ${names.join(', ')}`)
+    }
   }
   if (mcpByServer.size > 0) {
     lines.push('MCP server tools (full name = mcp__{server}__{tool}):')
@@ -49,8 +56,8 @@ function formatScopeOverview(deferred: Tool[]): string {
 }
 
 // 主代理视角的可加载名单（会话级延迟池）
-function buildScopeOverview(): string {
-  return formatScopeOverview(getDeferredTools())
+function buildScopeOverview(sessionId?: string): string {
+  return formatScopeOverview(getDeferredTools(undefined, sessionId))
 }
 
 function buildDescription(scopeOverview: string): string {
@@ -58,7 +65,7 @@ function buildDescription(scopeOverview: string): string {
     'Load deferred tools that are not yet in your tool list. ',
     'Loaded tools are appended to your available tools and can be called starting from the next turn. ',
     'Tools already in your list never need loading.\n\n',
-    'Pick names from the list below. Built-in tools: use the name as-is. ',
+    'Pick names from the grouped catalog below. Built-in tools: use the name as-is. ',
     'MCP tools: use the full name mcp__{server}__{tool}.\n\n',
     scopeOverview,
   ].join('')
@@ -128,7 +135,7 @@ export const LoadTools = {
       availableNames: new Set(getToolSearchDefaultNames()),
       loadedBefore: new Set(runtime.getLoadedToolNames()),
       addLoaded: names => runtime.addLoadedTools(names),
-      scopeOverview: buildScopeOverview,
+      scopeOverview: () => buildScopeOverview(),
     })
 
     yield {
@@ -155,6 +162,38 @@ export const LoadTools = {
     return parts.join('\n')
   },
 } satisfies Tool<typeof toolParams, ToolRes>
+
+/**
+ * adaptive 模式的主代理 load_tools：描述与校验都以会话当前工具集为基准，
+ * 避免把已加载的组再次列为可加载，或把未加载的工具误判为已可用。
+ */
+export function createSessionLoadTools(sessionId: string): Tool {
+  const runtime = getStateManager().session(sessionId)
+  const scopeOverview = () => buildScopeOverview(sessionId)
+  const deferredPool = () => getDeferredTools(undefined, sessionId)
+  const activeNames = () => new Set(getActiveToolNames(sessionId))
+
+  return {
+    ...LoadTools,
+    description() {
+      return buildDescription(scopeOverview())
+    },
+    async *call({ tool_names }: z.infer<typeof toolParams>) {
+      const data = classifyAndLoad(tool_names, {
+        deferredByName: new Map(deferredPool().map(tool => [tool.name, tool])),
+        availableNames: activeNames(),
+        loadedBefore: new Set(runtime.getLoadedToolNames()),
+        addLoaded: names => runtime.addLoadedTools(names),
+        scopeOverview,
+      })
+      yield {
+        type: 'result' as const,
+        data,
+        resultForAssistant: LoadTools.genResultForAssistant(data),
+      }
+    },
+  } as any as Tool
+}
 
 // 子代理专用 load_tools 包装实例：以子代理视角计算延迟池，加载状态存 agent 级、随子代理结束清理
 

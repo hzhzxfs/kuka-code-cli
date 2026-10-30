@@ -53,9 +53,13 @@ export function buildAdditionalReminders(
   agentMode: AgentMode,
   sessionId: string,
   hasSkillTool: boolean = false,
+  turnReminders: Anthropic.ContentBlockParam[] = [],
 ): Anthropic.ContentBlockParam[] {
   // 文件引用 每次输入均添加
   const reminders = [...systemReminders]
+
+  // 回合级按需提示（Skill 分发等），只含名称/原因，不含正文
+  reminders.push(...turnReminders)
 
   // 判断是否为首次查询（消息历史为空），添加首次查询的额外信息 skills\rules
   if (messageHistory.length === 0) {
