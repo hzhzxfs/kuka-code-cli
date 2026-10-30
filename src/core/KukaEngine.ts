@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { randomUUID } from 'crypto'
 import { statSync } from 'fs'
-import { logInfo, logDebug, setLogLevel, logWarn } from '../util/log';
+import { logInfo, logDebug, logError, setLogLevel, logWarn } from '../util/log';
 import { getTokens } from '../util/tokens';
 import { loadHistory, saveHistory, resolveHistoryFile } from '../util/history';
 import { detectTopicInBackground } from '../util/topic';
@@ -407,6 +407,9 @@ export class KukaEngine {
     } catch (error) {
       if (isInterruptedException(error)) {
         logDebug('用户中断操作');
+      } else {
+        // 不吞掉真实错误：记录具体原因，避免请求静默中止
+        logError('processQuery 失败: ' + (error instanceof Error ? error.message : String(error)));
       }
     } finally {
       // 延迟清空 AbortController，确保所有中断逻辑执行完毕

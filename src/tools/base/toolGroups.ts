@@ -67,13 +67,6 @@ export const BUILTIN_TOOL_GROUPS: Record<Exclude<ToolGroup, 'mcp' | 'internal'>,
 }
 
 /** 简单请求的最小工具集：只保留读/搜/shell，不发送写文件与交互类 schema */
-export const MINIMAL_CORE_TOOLS = [
-  TOOL_NAME_RUN_SHELL,
-  TOOL_NAME_SEARCH_FILES,
-  TOOL_NAME_SEARCH_CONTENT,
-  TOOL_NAME_VIEW_FILE,
-]
-
 export const TOOL_GROUP_DESCRIPTIONS: Record<ToolGroup, string> = {
   core: 'basic file read/search/edit and shell',
   coding: 'code exploration, sub-agents, todos, notebooks, background jobs',
@@ -97,37 +90,47 @@ const CODING_RE = /(代码|函数|接口|报错|异常|编译|构建|测试|重�
 const DOCUMENT_RE = /\.(pdf|docx?|xlsx?|pptx?)\b|(文档|表格|幻灯片|演示文稿|工作簿)|\b(pdf|docx|doc|xlsx|xls|pptx|ppt|word|excel|powerpoint|slides?|spreadsheet|workbook)\b/i
 const MCP_RE = /\bmcp\b|model context protocol/i
 
-/** 简单请求：不加载完整工程能力，只保留最小 core 工具 */
-const SIMPLE_RE = new RegExp(
-  [
-    '^(现在|当前)?(的)?(系统)?(时间|日期|几号|几点)(是|为)?(多少|什么|？|\\?|$)',
-    "^(what('| i)?s|tell me) the (current )?(time|date)",
-    '^(hi|hello|hey|你好|您好|谢谢|多谢|thanks?|thx)[!.。！\\s]*$',
-  ].join('|'),
-  'i',
-)
+/** 简单请求类型：只发送完成该单步任务所需的最小工具集 */
+export type SimpleKind = 'time' | 'greeting' | 'read-file' | 'search'
+
+const TIME_RE = /^(现在|当前)?(的)?(系统)?(时间|日期|几号|几点)(是|为)?(多少|什么|？|\?|$)|^(what('| i)?s|tell me) the (current )?(time|date)/i
+const GREETING_RE = /^(hi|hello|hey|你好|您好|谢谢|多谢|thanks?|thx)[!.。！\s]*$/i
+const READ_FILE_RE = /^(看看|查看|读取|打开|read|show|cat|open)\s+[\x60"']?[\w./~-]+\.(ts|tsx|js|json|md|txt|py|go|java|css|html|ya?ml|toml|sh|rs|c|cpp|h)\b/i
+const SEARCH_RE = /^(搜索|查找|找一下|search|grep|find|locate)\s+\S+/i
+
+/** 判断简单请求类型；未命中返回 undefined（不做语义猜测） */
+export function detectSimpleKind(input: string): SimpleKind | undefined {
+  const text = (input || '').trim()
+  if (!text) return undefined
+  if (TIME_RE.test(text)) return 'time'
+  if (GREETING_RE.test(text)) return 'greeting'
+  if (READ_FILE_RE.test(text) && text.length <= 120) return 'read-file'
+  if (SEARCH_RE.test(text) && text.length <= 80 && !/修改|实现|重构|修复|refactor|implement|fix/i.test(text)) {
+    return 'search'
+  }
+  return undefined
+}
+
+/** 判断输入是否为简单的单步请求（时间查询、问候、读取单个文件、简单搜索） */
+export function isSimpleRequest(input: string): boolean {
+  return detectSimpleKind(input) !== undefined
+}
+
+/** 简单请求的最小工具集：时间查询只保留 run_shell */
+export const SIMPLE_TOOLS: Record<SimpleKind, string[]> = {
+  time: [TOOL_NAME_RUN_SHELL],
+  greeting: [TOOL_NAME_RUN_SHELL],
+  'read-file': [TOOL_NAME_VIEW_FILE],
+  search: [TOOL_NAME_SEARCH_CONTENT, TOOL_NAME_SEARCH_FILES],
+}
 
 export interface ToolGroupDetection {
   groups: ToolGroup[]
   confidence: 'high' | 'low'
   basis: 'simple' | 'detected' | 'fallback'
   reasons: string[]
-}
-
-/** 判断输入是否为简单的单步请求（时间查询、问候、读取单个文件、简单搜索） */
-export function isSimpleRequest(input: string): boolean {
-  const text = input.trim()
-  if (!text) return true
-  if (SIMPLE_RE.test(text)) return true
-  // 读取单个明确文件
-  if (/^(看看|查看|读取|打开|read|show|cat|open)\s+[`"']?[\w./~-]+\.(ts|tsx|js|json|md|txt|py|go|java|css|html|ya?ml|toml|sh|rs|c|cpp|h)\b/i.test(text) && text.length <= 120) {
-    return true
-  }
-  // 简单搜索：短命令式输入
-  if (/^(搜索|查找|找一下|search|grep|find|locate)\s+\S+/i.test(text) && text.length <= 80 && !/修改|实现|重构|修复|refactor|implement|fix/i.test(text)) {
-    return true
-  }
-  return false
+  /** 简单请求类型（basis=simple 时存在） */
+  simpleKind?: SimpleKind
 }
 
 /** 确定性分组识别：不做语义猜测；未命中且非简单请求 → 低置信度回退 */
@@ -136,8 +139,9 @@ export function detectToolGroups(input: string, mcpServerNames: string[] = []): 
   const groups = new Set<ToolGroup>(['core'])
   const reasons: string[] = []
 
-  if (isSimpleRequest(text)) {
-    return { groups: ['core'], confidence: 'high', basis: 'simple', reasons: ['simple request'] }
+  const simpleKind = detectSimpleKind(text)
+  if (simpleKind) {
+    return { groups: ['core'], confidence: 'high', basis: 'simple', reasons: ['simple request: ' + simpleKind], simpleKind }
   }
 
   if (CODING_RE.test(text)) {
@@ -220,17 +224,29 @@ export function selectToolsForTurn(params: ToolSelectionParams): ToolSelection {
   }
 
   const detection = detectToolGroups(params.input, params.mcpServerNames)
+
+  // 简单单步请求：只发送完成该任务所需的最小工具集，不附加 load_tools 与已加载段
+  if (detection.basis === 'simple') {
+    const minimal = SIMPLE_TOOLS[detection.simpleKind ?? 'time'] ?? [TOOL_NAME_RUN_SHELL]
+    const names = minimal.filter(name => availableSet.has(name))
+    return {
+      names,
+      groups: ['core'],
+      basis: 'simple',
+      confidence: 'high',
+      reasons: detection.reasons,
+    }
+  }
+
   const groups = new Set<ToolGroup>(detection.groups)
   for (const group of params.carriedGroups ?? []) groups.add(group)
 
   const selected = new Set<string>()
   const names: string[] = []
-  const minimal = detection.basis === 'simple'
   for (const group of TOOL_GROUP_ORDER) {
     if (group === 'internal' || !groups.has(group)) continue
     for (const name of available) {
       if (getToolGroup(name) !== group || selected.has(name)) continue
-      if (minimal && group === 'core' && !MINIMAL_CORE_TOOLS.includes(name)) continue
       selected.add(name)
       names.push(name)
     }

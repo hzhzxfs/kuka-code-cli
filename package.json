@@ -34,7 +34,8 @@
     "build": "tsc",
     "cli": "node bin/cc.js",
     "lint": "eslint src/**/*.ts",
-    "test": "node --import tsx --test tests/*.test.ts",
+    "pretest": "tsc",
+    "test": "node --import tsx --import ./tests/setup.ts --test tests/*.test.ts",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

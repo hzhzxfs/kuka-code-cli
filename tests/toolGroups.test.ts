@@ -14,12 +14,17 @@ const available = [
 const select = (input: string, extra: Partial<Parameters<typeof selectToolsForTurn>[0]> = {}) =>
   selectToolsForTurn({ input, availableNames: available, mcpServerNames: ['figma'], mode: 'adaptive', ...extra })
 
-test('time query loads minimal core tools only', () => {
+test('time query loads only run_shell', () => {
   const result = select('现在的系统时间是？')
   assert.equal(result.basis, 'simple')
-  assert.deepEqual(result.names, ['run_shell', 'search_files', 'search_content', 'view_file'])
+  assert.deepEqual(result.names, ['run_shell'])
   assert.ok(!result.names.includes('skill'))
   assert.ok(!result.names.includes('mcp__figma__get_file'))
+})
+
+test('read/search requests keep only their minimal tool', () => {
+  assert.deepEqual(select('读取 src/index.ts').names, ['view_file'])
+  assert.deepEqual(select('搜索 queryLLM 的定义').names, ['search_content', 'search_files'])
 })
 
 test('time query works in English too', () => {

@@ -19,7 +19,7 @@ export const DOCUMENT_FORMAT_SKILLS: Record<string, string> = {
   xlsx: 'xlsx',
 }
 
-const SUMMARY_MAX_CHARS = 160
+const SUMMARY_MAX_CHARS = 100
 
 /** 名称规范化：去 /、小写、空格/下划线转连字符；alias 去重以此为准 */
 export function normalizeSkillName(name: string): string {
@@ -33,8 +33,9 @@ export function normalizeSkillName(name: string): string {
 
 /** 取 description 首行/首句作为轻量摘要 */
 export function toSkillSummary(description: string, limit = SUMMARY_MAX_CHARS): string {
-  const firstLine = (description || '').trim().split(/\r?\n/)[0].trim()
-  const firstSentence = firstLine.split(/(?<=[.!?。！？])\s+/)[0] || firstLine
+  // 单行短摘要：折叠换行/连续空白，按首句截断
+  const singleLine = (description || '').replace(/\s+/g, ' ').trim()
+  const firstSentence = singleLine.split(/(?<=[.!?。！？])\s+/)[0] || singleLine
   return firstSentence.length > limit ? firstSentence.slice(0, limit).trimEnd() + '…' : firstSentence
 }
 

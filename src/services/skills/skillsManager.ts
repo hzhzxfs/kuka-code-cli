@@ -38,6 +38,8 @@ class SkillsManager {
   private loadingPromise: Promise<SkillConfig[]> | null = null
   // 最近一次全量扫描时间（用于会话启动时的陈旧缓存刷新）
   private lastLoadAt = 0
+  // 轻量 registry 缓存（按需上下文路由/诊断复用，避免每轮重建）
+  private registryCache: SkillRegistryEntry[] | null = null
 
   constructor(dirs?: { userSkillsDir?: string; projectSkillsDir?: string }) {
     const kukaRootDir = getKukacodeRootDir()
@@ -60,6 +62,7 @@ class SkillsManager {
    */
   private invalidateCache(): void {
     this.skillInfoCache = null
+    this.registryCache = null
   }
 
   /**
@@ -264,7 +267,10 @@ class SkillsManager {
    * 用于路由、reminder 与自动匹配，禁止把 prompt 复制到这里。
    */
   getSkillRegistry(): SkillRegistryEntry[] {
-    return buildSkillRegistry(this.getSkillsConfs())
+    if (!this.registryCache) {
+      this.registryCache = buildSkillRegistry(this.getSkillsConfs())
+    }
+    return this.registryCache
   }
 
   /**

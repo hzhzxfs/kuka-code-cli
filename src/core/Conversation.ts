@@ -19,6 +19,7 @@ import { getAvailableTools } from '../tools/base/tools'
 import { getConfManager } from '../manager/ConfManager'
 import { generateRulesReminders, generateSkillsReminder } from '../services/agents/genSystemReminder'
 import { runToolsConcurrently, runToolsSerially } from './RunTools'
+import { logPayloadDiagnostics } from '../services/api/payloadDiagnostics'
 import { processFileReferences } from '../util/fileReference'
 import { TOOL_NAME_SKILL } from '../prompt/tool'
 import { REMINDER_SYS_OPEN, REMINDER_SYS_CLOSE } from '../prompt/define'
@@ -60,13 +61,18 @@ export async function* ReAct(
   }
 
   // 获取助手响应
+  // 最终 payload 只使用本轮选中的工具：simple 轮次在 tool result 之后仅保留本轮实际调用过的工具
+  const requestTools = resolveRequestTools(messages, tools, agentContext)
+  const apiMessages = prepareMessagesForApi(messages)
+  if (!isSubagent) logPayloadDiagnostics(sessionId, apiMessages, requestTools)
+
   let assistantMessage: AiMessage
   try {
     assistantMessage = await queryLLM(
-      prepareMessagesForApi(messages),
+      apiMessages,
       systemPromptContent,
       abortController.signal,
-      tools,
+      requestTools,
       {
         modelPointer: agentContext.model,
         disableChunkEvents: isSubagent, // 根据上下文决定是否发送 chunk 事件
@@ -402,4 +408,44 @@ async function injectPendingInputsIntoToolResult(
   }
 
   logInfo(`[inject] 已注入 ${injectItems.length} 条用户消息`)
+}
+
+
+/**
+ * 计算本次请求应发送的工具集。
+ * adaptive 简单单步任务（时间查询等）：首轮只发送最小 core；tool result 之后的下一轮
+ * 只保留本轮实际调用过的工具，避免把无关工具重新塞回 payload。
+ */
+function resolveRequestTools(
+  messages: Message[],
+  tools: AgentContext['tools'],
+  agentContext: AgentContext,
+): AgentContext['tools'] {
+  if (agentContext.agentId !== MAIN_AGENT_ID) return tools
+  try {
+    const runtime = getStateManager().session(agentContext.sessionId)
+    if (runtime.getTurnToolPolicy() !== 'simple') return tools
+
+    const lastMessage = messages[messages.length - 1]
+    if (!lastMessage || lastMessage.type !== 'user' || !Array.isArray(lastMessage.message.content)) {
+      return tools
+    }
+    const resultIds = new Set(
+      lastMessage.message.content
+        .filter(block => block.type === 'tool_result')
+        .map(block => (block as { tool_use_id: string }).tool_use_id)
+    )
+    if (resultIds.size === 0) return tools
+
+    const usedNames = new Set<string>()
+    for (const message of messages) {
+      if (message.type !== 'assistant') continue
+      for (const block of message.message.content) {
+        if (block.type === 'tool_use' && resultIds.has(block.id)) usedNames.add(block.name)
+      }
+    }
+    return tools.filter(tool => usedNames.has(tool.name))
+  } catch {
+    return tools
+  }
 }

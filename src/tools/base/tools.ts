@@ -66,7 +66,7 @@ export function getContextMode(): ContextMode {
   if (config?.contextMode === 'legacy' || config?.contextMode === 'adaptive') {
     return config.contextMode
   }
-  if (config?.enableToolSearch) return 'legacy'
+  // 不再因 enableToolSearch 隐式回退 legacy：只有显式配置 legacy 才走旧路径
   return 'adaptive'
 }
 
@@ -250,24 +250,45 @@ export function getAvailableTools(useTools?: string[] | null, opts?: { sessionId
  */
 function getAdaptiveTools(sessionId: string, allTools: Tool[]): Tool[] {
   const runtime = getStateManager().session(sessionId)
+  const availableNames = allTools.map(tool => tool.name)
+  const loadedToolNames = runtime.getLoadedToolNames()
+  const cacheKey = [runtime.getTurnSeq(), loadedToolNames.join(','), availableNames.join(',')].join('|')
+  const cached = runtime.getTurnToolsCache(cacheKey)
+  if (cached) return cached as Tool[]
+
   const byName = new Map<string, Tool>()
   allTools.forEach(tool => byName.set(tool.name, tool))
 
   const selection = selectToolsForTurn({
     input: runtime.getTurnInput(),
-    availableNames: allTools.map(tool => tool.name),
+    availableNames,
     mcpServerNames: getMCPManager().getMCPTools().map(tool => tool.name.split('__')[1] || tool.name),
     mode: 'adaptive',
     carriedGroups: runtime.getPrevTurnToolGroups() as ToolGroup[],
   })
 
+  const reason = selection.basis + '/' + selection.confidence + ': ' + selection.reasons.join(', ')
+  runtime.setTurnSelectionReason(reason)
+
+  // 简单单步请求：只发送最小工具集，不附加 load_tools、Skill 工具和已加载段
+  if (selection.basis === 'simple') {
+    runtime.setTurnToolPolicy('simple')
+    const simpleTools = selection.names
+      .map(name => byName.get(name))
+      .filter((tool): tool is Tool => !!tool)
+    runtime.setTurnToolsCache(cacheKey, simpleTools)
+    logInfo('tools len: ' + simpleTools.length + ' (adaptive simple: ' + selection.names.join(', ') + ')')
+    return simpleTools
+  }
+
+  runtime.setTurnToolPolicy('full')
   const selectedNames = new Set(selection.names)
   const selected = selection.names
     .map(name => byName.get(name))
     .filter((tool): tool is Tool => !!tool)
 
   // 已通过 load_tools 显式加载的工具继续保留（append-only，保证前缀缓存稳定）
-  const loadedNames = runtime.getLoadedToolNames().filter(name => !selectedNames.has(name))
+  const loadedNames = loadedToolNames.filter(name => !selectedNames.has(name))
   const loaded = loadedNames
     .map(name => byName.get(name))
     .filter((tool): tool is Tool => !!tool)
@@ -276,7 +297,8 @@ function getAdaptiveTools(sessionId: string, allTools: Tool[]): Tool[] {
   const tools = hasDeferred
     ? [...selected, createSessionLoadTools(sessionId), ...loaded]
     : [...selected, ...loaded]
-  logInfo(`tools len: ${tools.length} (adaptive: ${selection.basis}, groups: ${selection.groups.join('+')}, loaded: ${loaded.length})`)
+  runtime.setTurnToolsCache(cacheKey, tools)
+  logInfo('tools len: ' + tools.length + ' (adaptive: ' + selection.basis + ', groups: ' + selection.groups.join('+') + ', loaded: ' + loaded.length + ')')
   return tools
 }
 

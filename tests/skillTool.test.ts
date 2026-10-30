@@ -25,7 +25,6 @@ test('skill tool loads one body per turn, resolves aliases, loads dependencies a
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kuka-skill-tool-'))
   const project = path.join(base, 'project')
   const skillsDir = path.join(project, '.kukacode', 'skills')
-  process.env.KUKACODE_ROOT = path.join(base, 'root')
 
   writeSkill(skillsDir, 'docx', ['---', 'name: docx', 'description: Word documents', 'aliases: [word]'], 'DOCX BODY')
   writeSkill(skillsDir, 'pdf', ['---', 'name: pdf', 'description: PDF documents'], 'PDF BODY')

@@ -50,6 +50,9 @@ export function buildSkillDispatchReminders(input: string, opts: { sessionId?: s
 
     const explicitRef = parseExplicitSkillRef(input)
     const selection = selectSkillsForTurn(registry, input, { explicitRef })
+    if (opts.sessionId) {
+      getStateManager().session(opts.sessionId).setTurnMatchedSkills(selection.names)
+    }
 
     // 显式写了 /name 但没有任何 Skill 命中：给出可读错误，不阻断对话
     if (!explicitRef && input.trim().startsWith('/')) {

@@ -12,7 +12,6 @@ test('adaptive tool assembly keeps workflow tools across turns and lazy-loads ot
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'kuka-adaptive-'))
   const project = path.join(base, 'project')
   fs.mkdirSync(project, { recursive: true })
-  process.env.KUKACODE_ROOT = path.join(base, 'root')
   updateInitialCwd(project)
   await getConfManager().setCoreConfig({ workingDir: project, contextMode: 'adaptive' })
 

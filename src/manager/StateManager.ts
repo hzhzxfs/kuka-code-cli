@@ -137,6 +137,16 @@ export class SessionRuntime {
   private skillsLoadedThisTurn = new Set<string>();
   private prevTurnToolGroups: string[] = [];
   private currentTurnToolGroups = new Set<string>();
+  // 本轮工具策略：simple 时 tool call 后的下一轮只保留本轮实际调用过的工具
+  private turnToolPolicy: 'simple' | 'full' = 'full';
+  // 本轮工具选择依据（诊断日志用，不含正文和密钥）
+  private turnSelectionReason = '';
+  // 本轮匹配到的 Skill 名（诊断日志用）
+  private turnMatchedSkills: string[] = [];
+  // 本会话已加载 Skill 正文的字符数（诊断日志用）
+  private loadedSkillChars = 0;
+  // 本轮工具集缓存：同一轮内重复组装（含 load_tools 描述）直接命中，避免重复遍历/构建
+  private turnToolsCache: { key: string; tools: unknown[] } | null = null;
 
   // 工具搜索模式下本会话已动态加载的工具名（内置名或 mcp__ 全名）
   // append-only：顺序即 tools 数组尾部的追加顺序，保证 LLM 前缀缓存稳定，不提供移除/重排
@@ -574,6 +584,11 @@ export class SessionRuntime {
     this.skillsLoadedThisTurn.clear()
     this.prevTurnToolGroups = [...this.currentTurnToolGroups]
     this.currentTurnToolGroups.clear()
+    this.turnToolPolicy = 'full'
+    this.turnSelectionReason = ''
+    this.turnMatchedSkills = []
+    this.loadedSkillChars = 0
+    this.turnToolsCache = null
   }
 
   getTurnSeq(): number {
@@ -605,6 +620,46 @@ export class SessionRuntime {
     return [...this.prevTurnToolGroups]
   }
 
+  setTurnToolPolicy(policy: 'simple' | 'full'): void {
+    this.turnToolPolicy = policy
+  }
+
+  getTurnToolPolicy(): 'simple' | 'full' {
+    return this.turnToolPolicy
+  }
+
+  setTurnSelectionReason(reason: string): void {
+    this.turnSelectionReason = reason
+  }
+
+  getTurnSelectionReason(): string {
+    return this.turnSelectionReason
+  }
+
+  setTurnMatchedSkills(names: string[]): void {
+    this.turnMatchedSkills = [...names]
+  }
+
+  getTurnMatchedSkills(): string[] {
+    return [...this.turnMatchedSkills]
+  }
+
+  addLoadedSkillChars(chars: number): void {
+    this.loadedSkillChars += Math.max(0, chars)
+  }
+
+  getLoadedSkillChars(): number {
+    return this.loadedSkillChars
+  }
+
+  getTurnToolsCache(key: string): unknown[] | undefined {
+    return this.turnToolsCache && this.turnToolsCache.key === key ? this.turnToolsCache.tools : undefined
+  }
+
+  setTurnToolsCache(key: string, tools: unknown[]): void {
+    this.turnToolsCache = { key, tools }
+  }
+
   // ============================================================
   // 清理
   // ============================================================
@@ -634,6 +689,11 @@ export class SessionRuntime {
     this.skillsLoadedThisTurn.clear();
     this.prevTurnToolGroups = [];
     this.currentTurnToolGroups.clear();
+    this.turnToolPolicy = 'full';
+    this.turnSelectionReason = '';
+    this.turnMatchedSkills = [];
+    this.loadedSkillChars = 0;
+    this.turnToolsCache = null;
 
     logInfo(`[${this.sessionId}] 所有状态数据已清空`);
   }

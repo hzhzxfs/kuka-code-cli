@@ -22,8 +22,8 @@ test('registry contains metadata only, never the skill body', () => {
 })
 
 test('summary is shortened without cutting metadata', () => {
-  assert.equal(toSkillSummary('first line\nsecond line'), 'first line')
-  assert.ok(toSkillSummary('x'.repeat(400)).length <= 161)
+  assert.equal(toSkillSummary('first line\nsecond line'), 'first line second line')
+  assert.ok(toSkillSummary('x'.repeat(400)).length <= 101)
 })
 
 test('name normalization and alias resolution are case/format insensitive', () => {

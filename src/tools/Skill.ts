@@ -185,6 +185,11 @@ export const Skill = {
       })
     }
 
+    if (runtime) {
+      const bodyChars = blocks.reduce((total, block) => total + (block.type === 'text' ? block.text.length : 0), 0)
+      runtime.addLoadedSkillChars(bodyChars)
+    }
+
     const output: ToolRes = {
       name: skillConfig.name,
       description: skillConfig.description,
