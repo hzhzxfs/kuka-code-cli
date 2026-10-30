@@ -544,16 +544,35 @@ function logSessionEvents(session: KukaSession): void {
 function streamAssistantText(session: KukaSession): void {
   const isMain = (agentId?: string) => agentId === MAIN_AGENT_ID || !agentId;
   let subAgentDepth = 0;
+  let prefixWritten = false;
+  const writePrefix = () => {
+    if (prefixWritten) return;
+    prefixWritten = true;
+    process.stdout.write('\n' + c.green('🤖 Kuka: '));
+  };
   session.on('task:agent:start', () => (subAgentDepth++));
   session.on('task:agent:end', () => {
     if (subAgentDepth > 0) subAgentDepth--;
   });
   session.on('message:text:chunk', ({ delta }: { delta: string }) => {
     if (subAgentDepth > 0 || !delta) return;
+    writePrefix();
     process.stdout.write(delta);
   });
-  session.on('message:complete', (d: { agentId?: string }) => {
-    if (isMain(d.agentId)) process.stdout.write('\n');
+  session.on('message:complete', (d: { agentId?: string; content?: string; hasToolCalls?: boolean }) => {
+    if (!isMain(d.agentId)) return;
+    const text = (d.content || '').trim();
+    if (text) {
+      // 无流式 chunk（如 stream=false）时补打内容
+      if (!prefixWritten) {
+        writePrefix();
+        process.stdout.write(d.content || '');
+      }
+      process.stdout.write('\n');
+    } else if (d.hasToolCalls) {
+      // 纯工具调用轮次不产生任何可见文本，避免用户看到空行
+    }
+    prefixWritten = false;
   });
 }
 
@@ -620,7 +639,6 @@ async function interactiveLoop(core: KukaCore, session: KukaSession): Promise<vo
         askAndSend();
         return;
       }
-      process.stdout.write('\n' + c.green('🤖 Kuka: '));
       interruptCount = 0;
       session.processUserInput(input);
     };
@@ -665,7 +683,6 @@ function runSinglePrompt(session: KukaSession, promptText: string): Promise<void
       reject(new Error(data.message));
     });
 
-    process.stdout.write('\n' + c.green('🤖 Kuka: '));
     session.processUserInput(promptText);
     // Safety timeout in case the session never returns to idle.
     setTimeout(finish, 10 * 60 * 1000);

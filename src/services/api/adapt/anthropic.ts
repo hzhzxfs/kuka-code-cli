@@ -6,7 +6,7 @@ import { Tool } from '../../../tools/base/Tool'
 import { buildTools } from '../../../tools/base/tools'
 import { logLLMRequest } from '../../../util/logLLM'
 import { logDebug, logError } from '../../../util/log'
-import { emitChunkEvent, getChunkEventBus, withStreamTimeout } from './util'
+import { emitChunkEvent, getChunkEventBus, withStreamTimeout, shouldBufferSimpleText } from './util'
 import { guardFinalRequest } from '../finalRequestGuard'
 import { logFinalRequestBoundary } from '../payloadDiagnostics'
 
@@ -56,7 +56,10 @@ async function streamChat(
     cache_read_input_tokens: 0,
   };
 
-  const eventBus = getChunkEventBus(emitChunkEvents);
+  const eventBus = getChunkEventBus(emitChunkEvents)
+  const bufferSimpleText = shouldBufferSimpleText(sessionId)
+  let pendingSimpleText = ''
+  let sawToolUse = false;
 
   // 使用 stream 方法
   const stream = client.messages.stream({
@@ -91,6 +94,7 @@ async function streamChat(
           break;
         case 'content_block_start':
           if (event.content_block.type === 'tool_use') {
+            sawToolUse = true;
             contentBlocks[event.index] = { ...event.content_block, input: '' } as Anthropic.ContentBlock;
           }
           break;
@@ -104,7 +108,11 @@ async function streamChat(
           } else if (delta.type === 'text_delta') {
             accumulatedText += delta.text;
             if (eventBus) {
-              emitChunkEvent(eventBus, 'text', messageId, delta.text, sessionId);
+              if (bufferSimpleText) {
+                pendingSimpleText += delta.text;
+              } else {
+                emitChunkEvent(eventBus, 'text', messageId, delta.text, sessionId);
+              }
             }
           } else if (delta.type === 'input_json_delta') {
             const block = contentBlocks[event.index] as any;
@@ -140,6 +148,11 @@ async function streamChat(
   } finally {
     // 清理监听器
     signal?.removeEventListener('abort', abortListener);
+  }
+
+  // simple 轮次：没有 tool_use 才把缓冲文本发给 UI
+  if (eventBus && bufferSimpleText && pendingSimpleText && !sawToolUse && !isAborted && !signal?.aborted) {
+    emitChunkEvent(eventBus, 'text', messageId, pendingSimpleText, sessionId);
   }
 
   // --- 构建结果 ---

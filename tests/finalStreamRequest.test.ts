@@ -120,19 +120,23 @@ test('final streaming request boundary is trimmed in adaptive mode for both stre
     return session
   }
 
-  const runScenario = async (input: string, mark: () => void): Promise<any[]> => {
+  const runScenario = async (input: string, beforeRun?: (session: KukaSession) => void): Promise<any[]> => {
     const session = await newSession()
     const from = mock.requests.length
+    beforeRun?.(session)
     await runTurn(session, input)
     const captured = mock.requests.slice(from)
-    mark()
     session.dispose()
     return captured
   }
 
   try {
     // A. stream=true 时间查询：首轮仅 run_shell，第二轮无 tools、无 Available skills
-    const streamTrue = await runScenario('现在的系统时间是？', () => {})
+    const streamChunks: string[] = []
+    const streamTrue = await runScenario('现在的系统时间是？', (session) => {
+      session.on('message:text:chunk', (data: any) => streamChunks.push(data.delta))
+    })
+    assert.deepEqual(streamChunks, ['12:00'], 'tool-call turn must not stream preamble/blank text')
     assert.equal(streamTrue.length, 2)
     assert.equal(streamTrue[0].stream, true)
     assert.deepEqual(toolNames(streamTrue[0]), ['run_shell'])
@@ -150,7 +154,7 @@ test('final streaming request boundary is trimmed in adaptive mode for both stre
 
     // B. stream=false：同样的裁剪规则
     core.updateCoreConfByKey('stream', false)
-    const streamFalse = await runScenario('现在几点了？', () => {})
+    const streamFalse = await runScenario('现在几点了？')
     assert.deepEqual(toolNames(streamFalse[0]), ['run_shell'])
     assert.ok(!messageJson(streamFalse[0]).includes('Available skills'))
     assert.equal(toolNames(streamFalse[1]).length, 0)
@@ -158,7 +162,7 @@ test('final streaming request boundary is trimmed in adaptive mode for both stre
     core.updateCoreConfByKey('stream', true)
 
     // C. 普通代码修改：必要编辑工具在，cron/mcp/文档不在
-    const codeEdit = await runScenario('修复 src/index.ts 并运行测试', () => {})
+    const codeEdit = await runScenario('修复 src/index.ts 并运行测试')
     const codeTools = toolNames(codeEdit[0])
     assert.ok(codeTools.includes('patch_file'))
     assert.ok(codeTools.includes('run_shell'))
@@ -166,7 +170,7 @@ test('final streaming request boundary is trimmed in adaptive mode for both stre
     assert.ok(!codeTools.some(name => name.startsWith('mcp__')))
 
     // D. 显式 /pdf：只加载 pdf Skill，且不发送全量 Skill 列表
-    const pdf = await runScenario('/pdf 提取这个文件的文本', () => {})
+    const pdf = await runScenario('/pdf 提取这个文件的文本')
     assert.equal(pdf.length, 2)
     assert.ok(!messageJson(pdf[0]).includes('Available skills'))
     assert.ok(messageJson(pdf[0]).includes('pdf'))
@@ -177,7 +181,7 @@ test('final streaming request boundary is trimmed in adaptive mode for both stre
 
     // E. legacy：保持旧行为
     core.updateCoreConfByKey('contextMode', 'legacy')
-    const legacy = await runScenario('现在的系统时间是？', () => {})
+    const legacy = await runScenario('现在的系统时间是？')
     assert.equal(toolNames(legacy[0]).length, 21)
     assert.ok(messageJson(legacy[0]).includes('Available skills'))
     assert.ok(messageJson(legacy[0]).includes('PDF toolkit for extraction'))

@@ -64,3 +64,18 @@ export function getChunkEventBus(emitChunkEvents: boolean) {
   const shouldEmit = getConfManager().getCoreConfig()?.stream !== false
   return shouldEmit ? eventBus : null
 }
+
+
+/**
+ * simple 轮次（时间查询等）在流式阶段先缓冲文本：
+ * 若本轮最终包含 tool_calls，则丢弃前置说明；否则在流结束时一次性发出。
+ */
+export function shouldBufferSimpleText(sessionId?: string): boolean {
+  if (!sessionId) return false
+  try {
+    const { getStateManager } = require('../../../manager/StateManager') as typeof import('../../../manager/StateManager')
+    return getStateManager().session(sessionId).getTurnToolPolicy() === 'simple'
+  } catch {
+    return false
+  }
+}

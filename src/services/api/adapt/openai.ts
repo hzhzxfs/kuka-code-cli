@@ -10,7 +10,7 @@ import { buildTools } from '../../../tools/base/tools'
 import { logLLMRequest } from '../../../util/logLLM'
 import { logDebug, logError } from '../../../util/log'
 import { ukukaxCompletionTokens } from '../../../util/adapter'
-import { emitChunkEvent, getChunkEventBus, withStreamTimeout } from './util'
+import { emitChunkEvent, getChunkEventBus, withStreamTimeout, shouldBufferSimpleText } from './util'
 import { guardFinalRequest } from '../finalRequestGuard'
 import { logFinalRequestBoundary } from '../payloadDiagnostics'
 
@@ -53,7 +53,9 @@ async function streamChat(
     { id: string; name: string; arguments: string }
   >();
 
-  const eventBus = getChunkEventBus(emitChunkEvents);
+  const eventBus = getChunkEventBus(emitChunkEvents)
+  const bufferSimpleText = shouldBufferSimpleText(sessionId)
+  let pendingSimpleText = '';
 
   // 使用 stream 方法，添加 stream_options 以获取 usage 信息
   const stream = client.chat.completions.stream({
@@ -95,7 +97,11 @@ async function streamChat(
         }
         accumulatedContent += delta.content;
         if (eventBus) {
-          emitChunkEvent(eventBus, 'text', messageId, delta.content, sessionId);
+          if (bufferSimpleText) {
+            pendingSimpleText += delta.content;
+          } else {
+            emitChunkEvent(eventBus, 'text', messageId, delta.content, sessionId);
+          }
         }
       }
 
@@ -131,6 +137,11 @@ async function streamChat(
   } finally {
     // 清理监听器
     signal?.removeEventListener('abort', abortListener);
+  }
+
+  // simple 轮次：没有 tool_calls 才把缓冲文本发给 UI（含纯空白内容）
+  if (eventBus && bufferSimpleText && pendingSimpleText && toolCallsMap.size === 0 && !isAborted && !signal?.aborted) {
+    emitChunkEvent(eventBus, 'text', messageId, pendingSimpleText, sessionId);
   }
 
   // --- 获取最终响应信息（中断时跳过，避免挂起）---
