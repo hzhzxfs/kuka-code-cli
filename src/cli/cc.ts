@@ -545,34 +545,55 @@ function streamAssistantText(session: KukaSession): void {
   const isMain = (agentId?: string) => agentId === MAIN_AGENT_ID || !agentId;
   let subAgentDepth = 0;
   let prefixWritten = false;
+  let visibleWritten = false;
+  // 暂存尾部连续换行：模型常在工具调用前吐出 \n\n\n\n，直接写出会留下成片空白行
+  let pendingNewlines = '';
+
   const writePrefix = () => {
     if (prefixWritten) return;
     prefixWritten = true;
     process.stdout.write('\n' + c.green('🤖 Kuka: '));
   };
+
+  /** 写出文本片段：先挂起尾部换行，遇到可见字符才补发；纯空白片段不触发前缀 */
+  const writeText = (s: string) => {
+    if (!s) return;
+    const body = s.replace(/\n+$/, '');
+    const tail = s.slice(body.length);
+    if (body) {
+      writePrefix();
+      visibleWritten = true;
+      if (pendingNewlines) {
+        process.stdout.write(pendingNewlines);
+        pendingNewlines = '';
+      }
+      process.stdout.write(body);
+    }
+    if (tail) pendingNewlines += tail;
+  };
+
+  const resetTurn = () => {
+    prefixWritten = false;
+    visibleWritten = false;
+    pendingNewlines = '';
+  };
+
   session.on('task:agent:start', () => (subAgentDepth++));
   session.on('task:agent:end', () => {
     if (subAgentDepth > 0) subAgentDepth--;
   });
   session.on('message:text:chunk', ({ delta }: { delta: string }) => {
     if (subAgentDepth > 0 || !delta) return;
-    writePrefix();
-    process.stdout.write(delta);
+    writeText(delta);
   });
   session.on('message:complete', (d: { agentId?: string; content?: string; hasToolCalls?: boolean }) => {
     if (!isMain(d.agentId)) return;
-    const text = (d.content || '').trim();
-    if (text) {
-      // 无流式 chunk（如 stream=false）时补打内容
-      if (!prefixWritten) {
-        writePrefix();
-        process.stdout.write(d.content || '');
-      }
-      process.stdout.write('\n');
-    } else if (d.hasToolCalls) {
-      // 纯工具调用轮次不产生任何可见文本，避免用户看到空行
-    }
-    prefixWritten = false;
+    // 无流式 chunk（如 stream=false）时补打内容
+    if (!prefixWritten && (d.content || '').trim()) writeText(d.content || '');
+    // 轮次结束：丢弃尾部挂起的换行，只保留一个换行收尾
+    pendingNewlines = '';
+    if (visibleWritten) process.stdout.write('\n');
+    resetTurn();
   });
 }
 
