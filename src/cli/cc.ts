@@ -448,7 +448,7 @@ function makeCore(workingDir: string): KukaCore {
   return new KukaCore({
     workingDir,
     logLevel: 'none',
-    thinking: false,
+    thinking: true,
     disableTopicDetection: true,
     disableBackgroundTasks: false,
     disabledTools: ['ask_form'],
